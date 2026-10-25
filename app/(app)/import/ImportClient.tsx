@@ -65,6 +65,7 @@ export function ImportClient({ plans }: { plans: Plan[] }) {
       {codes.length > 0 && (
         <>
           <p className="font-semibold">{selected.length} of {codes.length} codes selected. Tap a code to untick it.</p>
+          <p className="text-sm text-mute">Compare the count and a few codes with your PDF. Reading a picture can misread a digit.</p>
           <ul className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto p-1">
             {codes.map((c) => (
               <li key={c}>

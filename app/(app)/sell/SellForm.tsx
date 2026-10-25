@@ -1,5 +1,6 @@
 'use client';
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { formatPeso } from '@/lib/money';
 import { sell } from './actions';
 
@@ -12,6 +13,7 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
   const [name, setName] = useState('');
   const [room, setRoom] = useState('');
   const [error, setError] = useState('');
+  const [reused, setReused] = useState(false);
   // One key per sell attempt, kept across retries so a lost response cannot double-sell.
   const [key] = useState(() => crypto.randomUUID());
   const [pending, start] = useTransition();
@@ -26,7 +28,7 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
       setError('');
       try {
         const r = await sell({ key, planId, tenderedCentavos: tendered ?? 0, buyerName: name, buyerRoom: room });
-        if (r?.error) setError(r.error);
+        if (r?.error) { setError(r.error); setReused(r.code === 'KEY_REUSED'); }
       } catch {
         setError('Network problem. Tap Confirm again to retry safely.');
       }
@@ -62,7 +64,11 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
         </div>
       )}
 
-      {error && <p role="alert" className="alert alert-bad">{error}</p>}
+      {error && (
+        <p role="alert" className="alert alert-bad">
+          {error}{reused && <> <Link href="/sales" className="font-semibold underline">Open Sales</Link></>}
+        </p>
+      )}
       <button disabled={!ready || pending} aria-busy={pending} onClick={submit} className="btn">
         {pending ? 'Selling…' : 'Confirm sale'}
       </button>

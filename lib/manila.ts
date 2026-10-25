@@ -15,3 +15,7 @@ export function manilaDayEnd(date: string) {
 }
 
 export const manilaMonthStart = (date: string) => `${date.slice(0, 7)}-01`;
+
+/** True only for a real calendar date written YYYY-MM-DD (so 2026-02-30 and 2026-13-45 fail). */
+export const isDate = (s: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`)) && new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s;

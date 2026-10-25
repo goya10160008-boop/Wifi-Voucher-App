@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { formatPeso } from '@/lib/money';
-import { manilaDateOf, manilaDayEnd, manilaDayStart, manilaMonthStart } from '@/lib/manila';
+import { isDate, manilaDateOf, manilaDayEnd, manilaDayStart, manilaMonthStart } from '@/lib/manila';
 
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const PAGE = 50;
 
 export default async function SalesPage({ searchParams }: {
@@ -12,22 +11,26 @@ export default async function SalesPage({ searchParams }: {
   const { supabase, role } = await requireRole('owner', 'staff');
   const sp = await searchParams;
   const today = manilaDateOf();
-  const from = sp.from && DATE.test(sp.from) ? sp.from : manilaMonthStart(today);
-  const to = sp.to && DATE.test(sp.to) ? sp.to : today;
+  const from = sp.from && isDate(sp.from) ? sp.from : manilaMonthStart(today);
+  const to = sp.to && isDate(sp.to) ? sp.to : today;
   const plan = sp.plan && /^[0-9a-f-]{36}$/i.test(sp.plan) ? sp.plan : undefined;
   const grain = sp.grain === 'month' ? 'month' : 'day';
   const page = Math.max(0, Number.parseInt(sp.page ?? '0', 10) || 0);
 
   let q = supabase.from('sales').select('*').gte('created_at', manilaDayStart(from)).lt('created_at', manilaDayEnd(to))
-    .order('created_at', { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1);
+    .order('created_at', { ascending: false }).order('id').range(page * PAGE, page * PAGE + PAGE - 1);
   if (plan) q = q.eq('plan_id', plan);
-  const [{ data: sales }, { data: totals }, { data: plans }] = await Promise.all([
+  const [{ data: sales, error: e1 }, { data: totals, error: e2 }, { data: plans, error: e3 }, { data: monthly, error: e4 }] = await Promise.all([
     q,
     supabase.rpc('sales_totals', { p_from: from, p_to: to, p_grain: grain, p_plan_id: plan }),
     supabase.from('plans').select('id, name').order('name'),
+    // Grand total comes from month buckets: few rows, so the API row cap cannot truncate it.
+    supabase.rpc('sales_totals', { p_from: from, p_to: to, p_grain: 'month', p_plan_id: plan }),
   ]);
+  // Show a real error, never a quiet "₱0.00".
+  if (e1 || e2 || e3 || e4) throw new Error('Could not load sales. Please try again.');
 
-  const grand = (totals ?? []).reduce((a, t) => a + Number(t.total_centavos), 0);
+  const grand = (monthly ?? []).reduce((a, t) => a + Number(t.total_centavos), 0);
   const fmt = new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' });
   const qs = (n: number) => `?${new URLSearchParams({ from, to, grain, ...(plan ? { plan } : {}), page: String(n) })}`;
 
@@ -62,7 +65,7 @@ export default async function SalesPage({ searchParams }: {
         {sales?.map((s) => (
           <li key={s.id}>
             <Link href={`/sales/${s.id}`} className={`row-link ${s.status === 'voided' ? 'text-mute line-through' : ''}`}>
-              <span><b className="font-mono">{s.voucher_code}</b> · {s.plan_name}<br /><small className="text-mute">{fmt.format(new Date(s.created_at))}{s.buyer_room ? ` · ${s.buyer_room}` : ''}</small></span>
+              <span><b className="font-mono">{s.voucher_code}</b> · {s.plan_name}{s.status === 'voided' ? ' (voided)' : ''}<br /><small className="text-mute">{fmt.format(new Date(s.created_at))}{s.buyer_room ? ` · ${s.buyer_room}` : ''}</small></span>
               <span>{formatPeso(s.price_centavos)}</span>
             </Link>
           </li>

@@ -45,6 +45,8 @@ export async function setPlanActive(form: FormData) {
   const { supabase } = await requireRole('owner');
   const id = String(form.get('id') ?? '');
   if (!/^[0-9a-f-]{36}$/i.test(id)) return;
-  await supabase.from('plans').update({ active: form.get('active') === 'true' }).eq('id', id);
+  const { error } = await supabase.from('plans').update({ active: form.get('active') === 'true' }).eq('id', id);
+  // Restoring an archived plan whose name is now taken by an active one fails (23505).
+  if (error) throw new Error(dbError(error));
   revalidatePath('/plans');
 }

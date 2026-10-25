@@ -7,11 +7,12 @@ export default async function Home() {
   const { supabase, role, name } = await requireUser();
   if (!role) return null; // layout shows "No access"
   const today = manilaDateOf();
-  const [{ data: stock }, { data: day }, { data: month }] = await Promise.all([
+  const [{ data: stock, error: e1 }, { data: day, error: e2 }, { data: month, error: e3 }] = await Promise.all([
     supabase.rpc('plan_stock'),
     supabase.rpc('sales_totals', { p_from: today, p_to: today, p_grain: 'day' }),
     supabase.rpc('sales_totals', { p_from: manilaMonthStart(today), p_to: today, p_grain: 'month' }),
   ]);
+  if (e1 || e2 || e3) throw new Error('Could not load the dashboard. Please try again.');
   const sum = (rows: { total_centavos: number; sale_count: number }[] | null) => ({
     pesos: (rows ?? []).reduce((a, r) => a + Number(r.total_centavos), 0),
     count: (rows ?? []).reduce((a, r) => a + Number(r.sale_count), 0),

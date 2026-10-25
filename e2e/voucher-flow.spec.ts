@@ -13,7 +13,7 @@ async function login(page: Page) {
   await page.getByPlaceholder('Email').fill(email!);
   await page.getByPlaceholder('Password').fill(password!);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { name: /^Hi/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'A&B WiFi' })).toBeVisible();
 }
 
 test('protected pages redirect to login', async ({ page }) => {
@@ -92,7 +92,7 @@ test('create plan, import, sell, copy, void, totals', async ({ page, context }) 
 
   await page.goto('/sales');
   await expect(page.getByText(codes[0]).first()).toBeVisible();
-  await expect(page.getByText(/Total: ₱0\.00/).or(page.getByText(/Total:/))).toBeVisible();
+  await expect(page.getByText(/Total: ₱0\.00/)).toBeVisible(); // the only sale was voided, so excluded
 });
 
 test('touch targets are at least 48px on the main screens', async ({ page }) => {

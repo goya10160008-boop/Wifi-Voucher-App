@@ -8,7 +8,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function sell(input: {
   key: string; planId: string; tenderedCentavos: number; buyerName: string; buyerRoom: string;
-}): Promise<{ error: string }> {
+}): Promise<{ error: string; code?: string }> {
   const { supabase } = await requireRole('owner', 'staff');
   const { key, planId, tenderedCentavos, buyerName, buyerRoom } = input;
   if (!UUID.test(key) || !UUID.test(planId)) return { error: 'Choose a plan.' };
@@ -24,7 +24,15 @@ export async function sell(input: {
     p_buyer_name: buyerName,
     p_buyer_room: buyerRoom,
   });
-  if (error) return { error: rpcMessage(error) };
+  if (error) {
+    // A same-key retry racing the first call can see the last code locked and report
+    // OUT_OF_STOCK although the first call is about to commit. Re-check by key.
+    if (error.message === 'OUT_OF_STOCK') {
+      const { data: existing } = await supabase.from('sales').select('id').eq('idempotency_key', key).maybeSingle();
+      if (existing) redirect(`/sales/${existing.id}?new=1`);
+    }
+    return { error: rpcMessage(error), code: error.message };
+  }
   revalidatePath('/');
   revalidatePath('/sales');
   redirect(`/sales/${data.id}?new=1`);
