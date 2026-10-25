@@ -1,6 +1,8 @@
 -- Minimal Supabase stand-in for a plain local Postgres (no Docker). Run BEFORE 0001_init.sql.
 create role anon nologin;
 create role authenticated nologin;
+create role service_role nologin;   -- the server-only secret key's role
+create schema extensions;           -- where Supabase keeps pgcrypto
 create schema auth;
 create table auth.users (id uuid primary key, email text);
 create function auth.uid() returns uuid language sql stable as $$

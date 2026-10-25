@@ -95,6 +95,14 @@ export type Database = {
         Args: { p_buyer_name?: string; p_buyer_room?: string; p_group_key: string; p_items: Json; p_tendered_centavos: number };
         Returns: Sale[];
       };
+      set_user_pin: { Args: { p_pin: string; p_user: string; p_username: string }; Returns: undefined };
+      unlock_user_pin: { Args: { p_user: string }; Returns: undefined };
+      set_staff_active: { Args: { p_active: boolean; p_user: string }; Returns: undefined };
+      user_pin_verify: { Args: { p_pin: string; p_username: string }; Returns: { ok: boolean; user_id: string | null }[] };
+      user_pin_status: {
+        Args: never;
+        Returns: { user_id: string; display_name: string | null; active: boolean; username: string | null; set_at: string | null; locked: boolean; hard_locked: boolean }[];
+      };
       record_event: { Args: { p_action: string; p_detail?: Json }; Returns: undefined };
       void_sale: { Args: { p_reason: string; p_sale_id: string }; Returns: Sale };
     };

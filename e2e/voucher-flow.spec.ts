@@ -10,6 +10,7 @@ const run = `${Date.now()}`.slice(-7);
 
 async function login(page: Page) {
   await page.goto('/login');
+  await page.getByRole('button', { name: 'Use email and password instead' }).click();
   await page.getByPlaceholder('Email').fill(email!);
   await page.getByPlaceholder('Password').fill(password!);
   await page.getByRole('button', { name: 'Sign in' }).click();
@@ -41,6 +42,7 @@ test('owner sees the activity log: by-person card and plain sentences', async ({
 test('staff get a 404 on the activity log and no Logs link', async ({ page }) => {
   test.skip(!process.env.E2E_STAFF_EMAIL || !process.env.E2E_STAFF_PASSWORD, 'set E2E_STAFF_EMAIL and E2E_STAFF_PASSWORD');
   await page.goto('/login');
+  await page.getByRole('button', { name: 'Use email and password instead' }).click();
   await page.getByPlaceholder('Email').fill(process.env.E2E_STAFF_EMAIL!);
   await page.getByPlaceholder('Password').fill(process.env.E2E_STAFF_PASSWORD!);
   await page.getByRole('button', { name: 'Sign in' }).click();
@@ -55,8 +57,18 @@ test('login screen renders (screenshot for visual review)', async ({ page }, inf
   await page.screenshot({ path: `test-results/login-${info.project.name}.png` });
 });
 
+test('a wrong PIN shows the one generic message and clears the dots', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByPlaceholder('Username').fill('nobody');
+  for (const k of '246810') await page.getByRole('button', { name: k, exact: true }).click();
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByText('Wrong username or PIN')).toBeVisible();
+  await expect(page.getByRole('img', { name: '0 digits entered' })).toBeVisible();
+});
+
 test('wrong password shows an error', async ({ page }) => {
   await page.goto('/login');
+  await page.getByRole('button', { name: 'Use email and password instead' }).click();
   await page.getByPlaceholder('Email').fill(email ?? 'nobody@example.com');
   await page.getByPlaceholder('Password').fill('nope-nope');
   await page.getByRole('button', { name: 'Sign in' }).click();

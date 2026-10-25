@@ -1,6 +1,7 @@
 import { requireUser } from '@/lib/auth';
 import { Nav } from '@/components/Nav';
 import { IdleGuard } from '@/components/IdleGuard';
+import { idleMsFor } from '@/lib/idle';
 import { logout } from '../(auth)/login/actions';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="mx-auto max-w-xl p-4 pb-32">
       {children}
       <Nav role={role} />
-      <IdleGuard />
+      <IdleGuard limit={idleMsFor(role)} />
     </div>
   );
 }

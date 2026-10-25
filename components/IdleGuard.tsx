@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { idleLogout } from '@/app/(auth)/login/actions';
-import { isIdle, isWarning, secondsLeft } from '@/lib/idle';
+import { IDLE_MS, isIdle, isWarning, secondsLeft } from '@/lib/idle';
 
 const KEY = 'idle:lastActive';
 const ACTIVITY = ['pointerdown', 'keydown', 'touchstart', 'scroll'] as const;
@@ -11,7 +11,7 @@ const stored = () => {
 };
 
 // Browser-side convenience, not a security boundary (see docs/decisions.md).
-export function IdleGuard() {
+export function IdleGuard({ limit = IDLE_MS }: { limit?: number }) {
   const last = useRef(Date.now());
   const out = useRef(false);
   const warn = useRef(false);
@@ -29,13 +29,13 @@ export function IdleGuard() {
     const check = () => {
       const now = Date.now();
       last.current = Math.max(last.current, stored()); // another tab may have been active
-      if (isIdle(last.current, now)) return signOut();
-      warn.current = isWarning(last.current, now);
-      setLeft(warn.current ? secondsLeft(last.current, now) : null);
+      if (isIdle(last.current, now, limit)) return signOut();
+      warn.current = isWarning(last.current, now, limit);
+      setLeft(warn.current ? secondsLeft(last.current, now, limit) : null);
     };
     const stay = () => {
       const now = Date.now();
-      if (isIdle(last.current, now)) return signOut(); // too late to rescue the session
+      if (isIdle(last.current, now, limit)) return signOut(); // too late to rescue the session
       last.current = now;
       warn.current = false;
       try { localStorage.setItem(KEY, String(now)); } catch {}
@@ -65,7 +65,7 @@ export function IdleGuard() {
       removeEventListener('pageshow', check);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, []);
+  }, [limit]);
 
   // Tick every second while the warning shows, rarely otherwise.
   const warning = left !== null;

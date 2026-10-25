@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IDLE_MS, WARN_MS, isIdle, isWarning, secondsLeft } from '@/lib/idle';
+import { IDLE_MS, STAFF_IDLE_MS, WARN_MS, idleMsFor, isIdle, isWarning, secondsLeft } from '@/lib/idle';
 
 const last = 1_000_000;
 const at = (ms: number) => last + ms;
@@ -35,5 +35,14 @@ describe('idle timing', () => {
   it('ignores a clock that went backwards (not idle)', () => {
     expect(isIdle(last, last - 5_000)).toBe(false);
     expect(isWarning(last, last - 5_000)).toBe(false);
+  });
+  it('staff get 5 minutes, the owner 15', () => {
+    expect(idleMsFor('staff')).toBe(5 * 60_000);
+    expect(idleMsFor('owner')).toBe(IDLE_MS);
+    expect(idleMsFor(null)).toBe(IDLE_MS);
+    expect(isIdle(last, at(STAFF_IDLE_MS), STAFF_IDLE_MS)).toBe(true);
+    expect(isIdle(last, at(STAFF_IDLE_MS), IDLE_MS)).toBe(false);
+    expect(isWarning(last, at(STAFF_IDLE_MS - 1), STAFF_IDLE_MS)).toBe(true);
+    expect(secondsLeft(last, at(0), STAFF_IDLE_MS)).toBe(300);
   });
 });
