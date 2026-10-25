@@ -5,7 +5,7 @@ Codes are generated in TP-Link Omada and exported as PDF. The app imports the co
 unused code per plan atomically, and records sales. Guests never log in. Cash only for now; GCash/Maya later
 (separate `payments` table already in the schema). Roles: `owner`, `staff` (limited, later).
 
-**Status:** all features built on branch `feat/app` (auth, plans, import w/ OCR, sell, sales/void/CSV, dashboard, settings, PWA, OpenNext config). DB migration applied to the remote Supabase project. Not deployed. Waiting on: owner login + profile row (see README), parallel-sale test, final review. Build notes: `docs/decisions.md`.
+**Status:** all features built on branch `feat/app` (auth, plans, import w/ OCR, sell, sales/void/CSV, dashboard, settings, PWA, OpenNext config). DB migration applied to the remote Supabase project. Mint design + CSS animations applied to every screen. Not deployed. Waiting on: owner login + profile row (see README), parallel-sale test, final review. Build notes: `docs/decisions.md`.
 Full design: `docs/superpowers/specs/2026-10-25-voucher-manager-design.md`. Plan: `docs/superpowers/plans/2026-10-25-voucher-manager-plan.md`.
 
 ## Stack
@@ -44,6 +44,9 @@ tests/unit/             e2e/                   samples/   docs/
 - Parsing PDFs happens in the browser; the server only receives `string[]`.
 - TDD: failing test first. Small commits, one per task. English UI. Big touch targets (min 48px), usable one-handed.
 - Agent status reports may be caveman style. Code, docs, UI text and messages to the owner are normal prose.
+
+## Design conventions
+- Mint tokens and shared classes live only in `app/globals.css`; no per-page colors. Animations are pure CSS and must respect `prefers-reduced-motion`. Submit buttons set `aria-busy={pending}`. New (app) pages get a `loading.tsx` if they fetch slowly.
 
 ## Rules
 - Never commit secrets. Use `.env.local` (and `.dev.vars` for Workers); keep `.env.example` current. The Supabase secret key is server-only, never `NEXT_PUBLIC_*`.

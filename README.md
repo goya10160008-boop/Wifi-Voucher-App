@@ -36,6 +36,8 @@ Open the site in Chrome (Android) or Safari (iPhone), then "Add to Home Screen".
 | Unit tests | `npm test` |
 | E2E tests | `npx playwright test` (full flow needs `E2E_EMAIL` and `E2E_PASSWORD` for an owner account) |
 | Build | `npm run build` |
+| Concurrency test (needs local Supabase) | `SUPABASE_TEST_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm test` |
+| Regenerate app icons | `node scripts/make-icons.mjs` |
 | Local Cloudflare preview | `npm run preview` |
 | Deploy | `npm run deploy` (ask the owner first) |
 

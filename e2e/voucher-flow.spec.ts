@@ -21,6 +21,12 @@ test('protected pages redirect to login', async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
+test('login screen renders (screenshot for visual review)', async ({ page }, info) => {
+  await page.goto('/login');
+  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+  await page.screenshot({ path: `test-results/login-${info.project.name}.png` });
+});
+
 test('wrong password shows an error', async ({ page }) => {
   await page.goto('/login');
   await page.getByPlaceholder('Email').fill(email ?? 'nobody@example.com');
