@@ -6,6 +6,7 @@ type Sale = {
   id: string; idempotency_key: string; plan_id: string; plan_name: string; price_centavos: number;
   sold_by: string; status: string; void_reason: string | null; voided_at: string | null;
   voided_by: string | null; voucher_code: string; voucher_id: number;
+  group_id: string | null; seq: number | null;
 };
 
 export type Database = {
@@ -79,6 +80,10 @@ export type Database = {
       sell_voucher: {
         Args: { p_buyer_name?: string; p_buyer_room?: string; p_idempotency_key: string; p_plan_id: string; p_tendered_centavos: number };
         Returns: Sale;
+      };
+      sell_cart: {
+        Args: { p_buyer_name?: string; p_buyer_room?: string; p_group_key: string; p_items: Json; p_tendered_centavos: number };
+        Returns: Sale[];
       };
       void_sale: { Args: { p_reason: string; p_sale_id: string }; Returns: Sale };
     };
