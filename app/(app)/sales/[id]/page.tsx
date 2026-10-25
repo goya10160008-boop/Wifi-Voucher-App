@@ -20,20 +20,20 @@ export default async function SalePage({ params, searchParams }: {
 
   return (
     <main className="flex flex-col gap-4">
-      {isNew && !voided && <p role="status" className="rounded-lg bg-green-50 p-3 text-green-800">Sale complete. Give this code to the guest.</p>}
+      {isNew && !voided && <p role="status" className="alert alert-ok self-start font-semibold">Sale complete. Give this code to the guest.</p>}
       {voided
-        ? <p role="status" className="rounded-lg bg-red-50 p-3 text-red-800">VOIDED: {sale.void_reason}. Code {sale.voucher_code} is burned.</p>
+        ? <p role="status" className="alert alert-bad">VOIDED: {sale.void_reason}. Code {sale.voucher_code} is burned.</p>
         : <VoucherCode code={sale.voucher_code} />}
-      <dl className="grid grid-cols-2 gap-2">
-        <dt>Plan</dt><dd>{sale.plan_name} ({sale.duration_minutes / 60}h)</dd>
-        <dt>Price</dt><dd>{formatPeso(sale.price_centavos)}</dd>
-        {pay?.tendered_centavos != null && <><dt>Cash / change</dt><dd>{formatPeso(pay.tendered_centavos)} / {formatPeso(pay.tendered_centavos - sale.price_centavos)}</dd></>}
-        <dt>Guest</dt><dd>{sale.buyer_name || '—'}</dd>
-        <dt>Room</dt><dd>{sale.buyer_room || '—'}</dd>
-        <dt>Sold</dt><dd>{when}</dd>
+      <dl className="card grid grid-cols-2 gap-2">
+        <dt className="text-mute">Plan</dt><dd>{sale.plan_name} ({sale.duration_minutes / 60}h)</dd>
+        <dt className="text-mute">Price</dt><dd>{formatPeso(sale.price_centavos)}</dd>
+        {pay?.tendered_centavos != null && <><dt className="text-mute">Cash / change</dt><dd>{formatPeso(pay.tendered_centavos)} / {formatPeso(pay.tendered_centavos - sale.price_centavos)}</dd></>}
+        <dt className="text-mute">Guest</dt><dd>{sale.buyer_name || '—'}</dd>
+        <dt className="text-mute">Room</dt><dd>{sale.buyer_room || '—'}</dd>
+        <dt className="text-mute">Sold</dt><dd>{when}</dd>
       </dl>
       {role === 'owner' && !voided && <VoidForm id={sale.id} />}
-      <Link href="/sell" className="flex min-h-12 items-center justify-center rounded-lg border border-gray-400">New sale</Link>
+      <Link href="/sell" className="btn btn-ghost">New sale</Link>
     </main>
   );
 }

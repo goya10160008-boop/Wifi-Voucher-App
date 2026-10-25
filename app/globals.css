@@ -91,6 +91,17 @@ textarea.field { padding: 0.75rem 1rem; }
 .chip:disabled { opacity: 0.4; }
 .chip[aria-pressed="true"], .chip[aria-checked="true"] { background: var(--color-soft); border-color: var(--color-pri); }
 
+.pick {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 84px; padding: 0.75rem 1rem;
+  border: 2px solid transparent; border-radius: var(--radius-card); background: var(--color-card); box-shadow: var(--shadow-card);
+  color: var(--color-ink); font: 600 16px var(--font-sans); text-align: left; cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.pick:active:not(:disabled) { transform: scale(0.97); }
+.pick:disabled { opacity: 0.4; cursor: not-allowed; }
+.pick[aria-checked="true"] { border-color: var(--color-pri); background: var(--color-soft); }
+.pick:focus-visible { outline: 3px solid var(--color-pri); outline-offset: 2px; }
+
 .row-link {
   display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
   min-height: 56px; padding: 0.5rem 1rem; border-radius: var(--radius-field);

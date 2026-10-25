@@ -32,42 +32,38 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
       }
     });
 
-  const field = 'min-h-12 w-full rounded-lg border border-gray-400 px-3 text-base';
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Plan">
         {plans.map((p) => (
           <button key={p.plan_id} role="radio" aria-checked={p.plan_id === planId} disabled={p.available === 0}
-            onClick={() => { setPlanId(p.plan_id); setTendered(null); }}
-            className={`min-h-16 rounded-xl border-2 p-3 text-left disabled:opacity-40 ${p.plan_id === planId ? 'border-blue-700 bg-blue-50' : 'border-gray-300'}`}>
-            <div className="font-semibold">{p.plan_name}</div>
-            <div>{formatPeso(p.price_centavos)}</div>
-            <div className="text-sm text-gray-600">{p.available} left</div>
+            onClick={() => { setPlanId(p.plan_id); setTendered(null); }} className="pick">
+            <span>{p.plan_name}</span>
+            <span>{formatPeso(p.price_centavos)}</span>
+            <span className="text-sm font-medium text-mute">{p.available} left</span>
           </button>
         ))}
       </div>
 
       {plan && (
-        <>
+        <div className="fade-in flex flex-col gap-4">
           <div className="flex flex-wrap gap-2">
             {chips.map((c) => (
-              <button key={c} onClick={() => setTendered(c)} aria-pressed={tendered === c}
-                className={`min-h-12 rounded-lg border px-4 ${tendered === c ? 'border-blue-700 bg-blue-50' : 'border-gray-400'}`}>
+              <button key={c} onClick={() => setTendered(c)} aria-pressed={tendered === c} className="chip">
                 {formatPeso(c)}
               </button>
             ))}
           </div>
-          <p className="text-lg" role="status">
+          <p className="text-lg font-semibold" role="status">
             {change === null ? 'Tap the cash received' : change >= 0 ? `Change: ${formatPeso(change)}` : 'Not enough cash'}
           </p>
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Guest name (optional)" className={field} />
-          <input value={room} onChange={(e) => setRoom(e.target.value)} maxLength={20} placeholder="Room (optional)" className={field} />
-        </>
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Guest name (optional)" aria-label="Guest name" className="field" />
+          <input value={room} onChange={(e) => setRoom(e.target.value)} maxLength={20} placeholder="Room (optional)" aria-label="Room" className="field" />
+        </div>
       )}
 
-      {error && <p role="alert" className="text-red-700">{error}</p>}
-      <button disabled={!ready || pending} onClick={submit}
-        className="min-h-14 rounded-lg bg-blue-700 px-4 text-lg font-semibold text-white disabled:opacity-50">
+      {error && <p role="alert" className="alert alert-bad">{error}</p>}
+      <button disabled={!ready || pending} aria-busy={pending} onClick={submit} className="btn">
         {pending ? 'Selling…' : 'Confirm sale'}
       </button>
     </div>

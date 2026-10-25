@@ -50,46 +50,44 @@ export function ImportClient({ plans }: { plans: Plan[] }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-400 p-4 text-center font-medium">
+      <label className="card flex min-h-16 cursor-pointer items-center justify-center border-2 border-dashed border-line text-center font-semibold focus-within:outline-3 focus-within:outline-pri">
         Choose Omada PDF
         <input type="file" accept="application/pdf" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />
       </label>
-      <details>
-        <summary className="min-h-12 cursor-pointer py-3">Or paste codes / CSV</summary>
+      <details className="card">
+        <summary className="flex min-h-12 cursor-pointer items-center font-semibold">Or paste codes / CSV</summary>
         <textarea value={paste} onChange={(e) => setPaste(e.target.value)} rows={5}
-          className="w-full rounded-lg border border-gray-400 p-3 font-mono" aria-label="Pasted codes" />
-        <button onClick={() => load(paste)} className="mt-2 min-h-12 rounded-lg border border-gray-400 px-4">Read codes</button>
+          className="field mt-2 font-mono" aria-label="Pasted codes" />
+        <button onClick={() => load(paste)} className="btn btn-ghost mt-2">Read codes</button>
       </details>
-      {status && <p role="status">{status}</p>}
+      {status && <p role="status" className="alert alert-warn">{status}</p>}
 
       {codes.length > 0 && (
         <>
           <p className="font-semibold">{selected.length} of {codes.length} codes selected. Tap a code to untick it.</p>
-          <ul className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto">
+          <ul className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto p-1">
             {codes.map((c) => (
               <li key={c}>
                 <button onClick={() => toggle(c)} aria-pressed={!off.has(c)}
-                  className={`min-h-12 w-full rounded-lg border font-mono ${off.has(c) ? 'border-gray-300 text-gray-400 line-through' : 'border-blue-700 bg-blue-50'}`}>
+                  className={`chip w-full font-mono ${off.has(c) ? 'text-mute line-through' : ''}`}>
                   {c}
                 </button>
               </li>
             ))}
           </ul>
-          <select value={planId} onChange={(e) => setPlanId(e.target.value)} aria-label="Plan"
-            className="min-h-12 rounded-lg border border-gray-400 px-3 text-base">
+          <select value={planId} onChange={(e) => setPlanId(e.target.value)} aria-label="Plan" className="field">
             <option value="">Choose plan…</option>
             {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <button disabled={!planId || !selected.length || pending} onClick={submit}
-            className="min-h-14 rounded-lg bg-blue-700 px-4 text-lg font-semibold text-white disabled:opacity-50">
+          <button disabled={!planId || !selected.length || pending} aria-busy={pending} onClick={submit} className="btn">
             {pending ? 'Importing…' : `Import ${selected.length} codes`}
           </button>
         </>
       )}
 
       {result && ('error' in result
-        ? <p role="alert" className="text-red-700">{result.error}</p>
-        : <p role="status" className="rounded-lg bg-green-50 p-3 text-green-800">
+        ? <p role="alert" className="alert alert-bad">{result.error}</p>
+        : <p role="status" className="alert alert-ok">
             Imported {result.inserted}. Already had {result.skippedDuplicate}. Invalid {result.skippedInvalid}.
           </p>)}
     </div>
