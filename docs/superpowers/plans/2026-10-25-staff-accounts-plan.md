@@ -191,82 +191,109 @@ Per-row sale triggers produce one log row per voucher. At ~100 sales a day that 
 - **v2:** `record_event` and the login, logout, idle sign-out and CSV-export events.
 - **Later, only if wanted:** log CSV export, purge function.
 
-## 8. Staff PIN login
+## 8. PIN login for everyone (owner and staff)
 
-Owner requirement: staff sign in with a PIN, and the owner keeps email and password. Planning only.
+Updated requirement: everyone may sign in with a PIN, the owner too. Planning only.
 
 ### 8.1 The honest trade-off
-A PIN is weaker than a password. Six digits are 1,000,000 combinations. That is acceptable here only because of what a staff login can do and because of the extra locks below. Be clear about the worst case: a staff login can sell vouchers, and every sale shows the code to whoever is holding the phone. Someone who guessed a staff PIN could sell, give away or pocket cash for up to the whole unsold stock. They could not see the stock list, void, import, export or change anything. That is the residual risk. Everything below shrinks it; none of it removes it.
+A PIN is weaker than a password: 6 digits are 1,000,000 combinations, 8 digits are 100,000,000, and a PIN is typed on a screen where someone can watch. The two accounts carry very different risk:
+- **A staff PIN stolen:** the thief can sell vouchers, and every sale shows them the code. They could sell, give away or pocket cash for up to the whole unsold stock. They cannot see the stock list, void, import, export or change anything.
+- **The owner PIN stolen:** the thief can do everything: void, import, export, change prices, see unsold codes, add staff.
+
+So the design rule is: **a PIN is a fast daily sign-in, not the key to the safe.** The owner keeps email and a strong password as the admin and recovery path, and the sensitive actions need that password.
 
 ### 8.2 How a PIN fits Supabase
-Supabase Auth only understands email and password. Its minimum password length is a setting (default 6; I did not check your project's value). Three ways to fit a PIN in:
+Supabase Auth only understands email and password (minimum password length is a setting, default 6; I did not check yours). Three ways:
+- **PIN-A: the PIN is the Supabase password.** Easy, but Supabase's login address is public (the app key is public), so anyone can try PINs against it directly and skip any lockout we write. Only Supabase's own per-address rate limits protect it (our logins come from Cloudflare's addresses; I have not checked your limits). **Not recommended, and far too weak for the owner.**
+- **PIN-B (recommended): we check the PIN, Supabase's password is a long random value nobody knows.** The PIN exists only as a bcrypt hash in our own table. One database function checks it, counts failures and applies the lockout in a single locked step. Only after a correct PIN does the server ask Supabase for a one-time sign-in link for that user and use it at once to start the normal session (no email is sent). The lockout is real because there is no other way in. Needs one Worker secret (the Supabase secret key) and a half-hour spike to prove it works on your project.
+- **PIN-C: peppered password.** Supabase's password is a code made from username, PIN and a server secret. Similar strength, but two secrets, and a leaked secret drops it back to PIN-A. Considered, not chosen.
 
-- **PIN-A: the PIN is the Supabase password** (with a made-up email such as `maria@staff.ab-wifi.invalid`). Easiest, no secrets. The catch: Supabase's login address is public (the app key is public), so anyone can try PINs against it directly and skip any lockout we write. Only Supabase's own rate limits would protect it. Those count per internet address, our logins come from Cloudflare's addresses, and I have not checked the limits on your project. Any lockout we added would be for show. **Not recommended.** Also, `.invalid` addresses may be rejected by Supabase (untested).
-- **PIN-B (recommended): we check the PIN, Supabase's password is random.** Each staff member's real Supabase password is a long random value that nobody knows, so Supabase's public login cannot be guessed. The PIN exists only in our own table as a bcrypt hash. One database function checks it, counts the failures and applies the lockout in a single locked step. Only after a correct PIN does the server ask Supabase for a one-time sign-in link for that user and use it immediately to start the normal session (no email is sent). The lockout is real, because there is no other way in. It needs one Worker secret (the Supabase secret key) and a half-hour spike to prove the one-time-link step works on your project.
-- **PIN-C: peppered password.** The Supabase password is a code computed from the username, the PIN and a server secret. Similar strength and no admin call at login, but two secrets, and a leaked secret drops it back to PIN-A. Considered, not chosen.
+### 8.3 Recommended design at a glance
 
-### 8.3 Login screen
-- `/login` gets two tabs: **Owner** (the current email and password form, unchanged) and **Staff**.
-- **Staff tab:** a username box and a large number keypad (keys at least 56 px, digits 0 to 9, backspace, six dots that fill as you type, `inputMode="numeric"`, in the lower half of the screen for one thumb). It submits by itself on the sixth digit.
-- **Names:** use a short typed username (for example `maria`), not a picker of staff names. A list on a public login page tells strangers who works for you and gives an attacker a head start. The phone remembers the last username (never the PIN) in the browser so staff only type the PIN day to day.
-- **Errors:** one message for every failure: "Wrong username or PIN, or the account is locked. Ask the owner." That avoids revealing which usernames exist.
-- The owner's login is never affected by staff lockouts.
+| | Staff | Owner |
+|---|---|---|
+| PIN length | 6 digits | **8 digits** |
+| Wrong tries | 5, then locked 15 minutes. A second lockout within 24 hours locks it until the owner unlocks | **3**, then locked 30 minutes. A second lockout switches the PIN off until the owner signs in with email and password |
+| What a PIN sign-in gives | A normal staff session | A **"daily" owner session**: sell, read all sales, totals, the activity log and receipts. **No sensitive actions** |
+| Sensitive actions | Not allowed to staff anyway | Need a **password sign-in within the last 30 minutes** |
+| Idle sign-out | 5 minutes | 15 minutes |
+| Who resets the PIN | The owner (from a full session) | Only the owner, from a password session, or you in the Supabase dashboard. Nobody else |
+| Switched on by default | Once the owner sets it | **Off** until the owner sets one in Settings |
 
-### 8.4 PIN security rules
-- **6 digits only.** No 4-digit PINs: 10,000 combinations is too few.
-- **Blocked PINs:** one repeated digit (000000), straight runs up or down (123456, 654321, 012345), and repeated short blocks (121212, 123123). The app can generate a random PIN for the owner to read out once; the owner may type their own if it passes the rules. The rules are enforced in the database function, not only in the form.
-- **Lockout:** 5 wrong tries in a row locks that username for 15 minutes. A second lockout within 24 hours locks it until the owner unlocks it. A correct PIN resets the count.
-- **What that buys:** with only the 15-minute lockout an attacker gets about 480 tries a day, roughly 3 years to cover half of the combinations. With the owner-unlock rule they get about 10 tries a day and you see it in the log. A person could also lock a staff member out on purpose by typing wrong PINs; the staff member calls you, you unlock, and the log shows it. Accepted, because it costs you a phone call and not money.
-- **Storage:** only a bcrypt hash in `staff_pins`, which no app user can read at all (even you; only the functions touch it). The PIN is never saved in plain text, logged, or put in a link. Next.js prints server action arguments in the development console, so the PIN travels in form data (shown as an empty object) and not as a plain argument.
-- **Honest limit:** any 6-digit secret can be recovered quickly from its hash if the table itself ever leaked. The table is readable only by database administrators and the functions.
-- **Owner sets and resets:** Staff page, pick the person, Generate or Set PIN, it is shown once, you tell the staff member. Staff changing their own PIN is a later step.
-- **Deactivation and roles:** the check function also requires `profiles.active` and `role = 'staff'`. A PIN can never start an owner session, and a deactivated person fails.
+**Sensitive actions** (enforced in the database wherever possible): void a sale, import codes, create or edit or archive plans, change settings, read the unsold codes table, set or reset or unlock PINs, add or deactivate staff, and CSV export (the database cannot tell an export from a normal read, so that one is enforced in the app only).
+**Daily actions:** sell, view sales and totals, receipts, view plans, read the log.
+**Honest limit:** a PIN-owner session can still read all sales (guest names, rooms, cash) through the API, and read the log.
 
-### 8.5 Idle time and shared phones
-- Make the idle limit depend on the role: **staff 5 minutes** (with the same 30-second warning), owner 15. Re-entering a PIN takes a few seconds. This is a small change: the layout already knows the role and can pass it to `IdleGuard`.
-- On a shared shop phone, a PIN session ends at idle or when the person taps Sign out. "Switch user" is just sign out.
-- Later, only if wanted: allow staff logins only from the shop's internet address or only in opening hours. The Worker can see both. Mentioned only.
+### 8.4 How "password in the last 30 minutes" is known
+Supabase puts a list of sign-in methods with their times into the session token (called `amr`). A password sign-in records "password" and the time. A one-time-link sign-in, which is what our PIN path uses, records a different method. A new database function `is_full_owner()` means: active owner and a password sign-in in the last 30 minutes. The sensitive policies and functions use it instead of `is_owner()` (a small migration, `0006`).
+- When the owner taps a locked item (Plans, Import, Settings, Staff, Void, CSV), the app shows "Enter your password to unlock admin". The password is checked with a normal password sign-in, which replaces the session, so the owner stays in the app and is full for 30 minutes.
+- A password-first owner who opens the app at 8am and wants to void at 3pm is asked for the password again. That is the price of the rule, and it is intended.
+- **Defence in depth:** even if a bug in the PIN path ever created an owner session by mistake, that session would still be "daily" and could not void, import or see unsold codes.
+- I have not verified that your project's tokens carry this list or that a one-time-link sign-in is recorded differently. The spike checks it. Fallback: a small table `owner_elevations` keyed by the token's session id, filled by the password step-up.
 
-### 8.6 What goes in the activity log
-`pin_set`, `pin_reset`, `staff_login` (success), `staff_login_failed` (the first failure per lockout window, with the count, only for real usernames), `staff_locked`, `staff_unlocked`, `staff_deactivated`. **Never** the PIN or a guess. Unknown usernames are not logged one by one, which would let someone flood the log. This builds on section 7, so the audit log (migration `0004`) comes first.
+### 8.5 Login screen: one unified screen, not a separate staff tab
+- One screen: a **username** box, a large number keypad (keys at least 56 px, `inputMode="numeric"`, dots that fill as you type, lower half of the screen, one thumb), a **Sign in** button, and a link **"Use email and password instead"** that opens today's form (the owner's admin and recovery path).
+- No auto-submit on the last digit, because staff PINs are 6 digits and the owner's are 8. The box accepts 6 to 8 digits and the server decides.
+- **No list of names** on the login page: a public list tells strangers who works for you. People type a short username (for example `maria`). Pick an owner username that is not `owner` or `admin`. The phone remembers the last username (never the PIN).
+- One generic error for every failure: "Wrong username or PIN, or the account is locked. Ask the owner."
+- **Why unified:** the owner signs in every day, a second tab is one more tap, and two forms are two things to keep working. A separate staff tab would also hint that the owner is the other tab.
 
-### 8.7 Pieces needed
-**Migration `0005_staff_pin.sql`** (after `0004`): table `staff_pins` (user id, lowercase username 3 to 20 characters and unique, bcrypt hash, failed count, lockout count, locked until, set at, set by) with row security on and no grants to anyone. Functions, all `SECURITY DEFINER` with `search_path=''`:
-- `owner_set_staff_pin(user, username, pin)`: owner only. The target must be an existing active staff profile. It checks the PIN rules, hashes, and resets the counters.
-- `owner_unlock_staff(user)`: owner only.
-- `staff_pin_verify(username, pin)`: executable **only by the server key** (`service_role`). Atomic with a row lock. It returns ok, user id and locked-until, and compares against a dummy hash for unknown usernames so timing does not give them away.
-- `owner_staff_pin_status()`: lists username, locked-until and set-at for the Staff page, never a hash.
+### 8.6 PIN rules, lockout and storage
+- **Never fewer than 6 digits.** Blocked: one repeated digit, straight runs up or down (123456, 654321, 012345), repeated short blocks (121212, 123123). The app can generate a random PIN to read out once. The rules are enforced inside the database function, not only in the form.
+- **Staff attack maths:** 5 tries per 15 minutes is about 480 tries a day, roughly 3 years to cover half of 1,000,000, and the second-lockout rule cuts it to about 10 a day plus a phone call to you.
+- **Owner attack maths:** 8 digits, 3 tries, then a hard switch-off after the second lockout, so an attacker gets at most 6 tries before the PIN is off and you are told. 6 tries out of 100,000,000 is a negligible chance.
+- **Lock-out vandalism:** anyone can lock a username by typing wrong PINs. For staff you unlock them. For the owner it only switches the PIN off: you use your password, which clears it, and the next login shows a red note "Your PIN was locked after wrong tries at 3:42 PM". Accepted for v1; the trusted-device step below removes it.
+- **Storage:** only a bcrypt hash in `user_pins`, which no app user can read (even you); only the functions touch it. The PIN is never saved in plain text, logged or put in a link. Next.js prints server action arguments in the development console, so the PIN travels in form data (printed as an empty object), not as a plain argument. Honest limit: any 6- or 8-digit secret can be recovered fast from its hash if the table itself leaked, so the table stays readable by the functions and database admins only.
+- **A PIN can only open the account it belongs to,** the account must be active, and the verify step re-reads the role every time.
 
-**App:** `lib/pin.ts` (rules and a random PIN generator using `crypto.getRandomValues`), `lib/lockout.ts` (the lockout rules as a pure function, used for wording and as the test vectors), `lib/supabase/admin.ts` (server-only), the `staffLogin` server action (form data, strict validation, same error for every failure), the Staff tab and keypad component, the owner `/staff` page (list, set or reset PIN, unlock, deactivate, reactivate), and the per-role idle limit.
+### 8.7 "Trusted device" idea (password once, then PIN on that phone only)
+- **What:** after a password sign-in the owner taps "Trust this phone". The server stores a random device token (hashed) in `trusted_devices` and sets a secure cookie for about 90 days. The owner PIN works only when that cookie is present.
+- **Effect:** remote guessing and the lock-out vandalism disappear, because without the cookie no attempt is even counted. A thief needs the phone and the PIN.
+- **Cost:** one table, cookie handling in the Worker, a "My devices" list with revoke and "sign out everywhere", plus tests. About one day. Supabase itself needs nothing special, because we still create the session the same way.
+- **The alternative** (leave the Supabase session logged in for weeks and use the PIN as a lock screen) is not recommended: a lock screen in the browser is cosmetic, and a thief holding the phone already has the live session.
+- **Verdict:** worth building for the owner as **v2**: it is what makes an owner PIN comfortable on the open internet. Optional for staff (registering the shop phone so staff PINs only work there; it adds control but blocks staff using their own phones). Until then the 8-digit PIN, hard lock and limited session are the defences.
 
-**Worker secret (you do this; I never see the key).** Only needed at the build and deploy stage.
-1. Supabase dashboard, Project Settings, API Keys. Copy the **secret** key (starts with `sb_secret_`). Do not paste it in chat.
-2. For local testing, add `SUPABASE_SECRET_KEY=...` to `.env.local` (git-ignored).
-3. For the live site, in the project folder run `npx wrangler secret put SUPABASE_SECRET_KEY`, paste the key and press Enter. Or in the Cloudflare dashboard open Workers and Pages, then `ab-wifi-vouchers`, then Settings, then Variables and Secrets, then Add, and choose type **Secret**.
-4. It must never be a `NEXT_PUBLIC_` variable, never in git.
+### 8.8 What goes in the activity log
+`pin_set`, `pin_reset` (with who did it), `pin_login` (owner or staff), `pin_login_failed` (first failure per window with the count, real usernames only), `pin_locked`, `pin_unlocked`, `step_up` (password unlock of admin succeeded), `sensitive_denied` (a daily session tried a sensitive action), `staff_deactivated`. **Never** the PIN or a guess. Unknown usernames are not logged one by one, so the log cannot be flooded. Builds on the audit log in section 7 (migration `0004` first).
 
-**Rules for that key in code:** `lib/supabase/admin.ts` begins with `import 'server-only'`; it is used only inside `staffLogin` after the check function says the PIN is right, and inside owner-gated actions; it is never sent to the browser. Because `staffLogin` runs before anyone is signed in, that code path stays tiny and is reviewed separately.
+### 8.9 Pieces needed
+**Migration `0005_user_pins.sql`:** table `user_pins` (user id, lowercase username 3 to 20 characters unique, bcrypt hash, PIN length, failed count, lockout count, locked until, set at, set by) with row security on and no grants to anyone. Functions, all `SECURITY DEFINER` with `search_path=''`:
+- `set_user_pin(user, username, pin)`: needs a full owner. Applies the length rule for the target's role, the blocked patterns, hashing, resets counters. An owner may set their own PIN only from a full session.
+- `unlock_user_pin(user)`: needs a full owner.
+- `user_pin_verify(username, pin)`: executable **only by `service_role`**. Atomic with a row lock, uses the role-specific limits, compares against a dummy hash for unknown usernames to even out timing. Returns ok, user id, locked-until and the role.
+- `user_pin_status()`: list for the owner page (username, locked-until, set-at), never a hash.
 
-### 8.8 Tests
-**Pure unit tests first:** PIN rules (about 40 valid and invalid examples), the random generator always passes the rules (1,000 samples), lockout vectors (failures 1 to 5, exact 15-minute boundary, second lockout becomes a hard lock, success resets, expiry), and idle limits per role.
+**Migration `0006_full_owner_gating.sql`:** `is_full_owner()`, then the sensitive policies and functions (`vouchers_select`, `plans_insert/update`, `settings_update`, `void_sale`, `import_vouchers`, the PIN and staff functions) switch from `is_owner()` to `is_full_owner()`. Existing data is untouched. Rollback is switching them back.
 
-**Local database harness, real roles:**
-- `staff_pins` cannot be read or written by `anon` or `authenticated`, not even the owner.
-- `staff_pin_verify` is denied to `anon` and `authenticated` and allowed to `service_role`.
-- `owner_set_staff_pin` rejects trivial or wrong-length PINs, owner targets, missing users and non-owner callers.
-- 20 parallel wrong tries leave exactly one lockout and a failure count of 5, not more.
-- A correct PIN while locked still fails; after the time passes it works; success resets the counters.
-- A deactivated staff member fails. A PIN login never yields a non-staff user.
-- The same lockout vectors run against the SQL function and must match the pure TypeScript rules.
-- Audit rows are written and none contains a PIN; no function ever returns a hash.
+**App:** `lib/pin.ts` (rules and a random PIN generator using `crypto.getRandomValues`), `lib/lockout.ts` (the lockout rules as a pure function, used as the test vectors and for wording), `lib/supabase/admin.ts` (server-only), the `pinLogin` server action (form data, strict validation, one error for everything), the unified login screen and keypad component, the "unlock admin" password prompt, the owner `/staff` page and Settings "My PIN", a `requireFullOwner()` helper for the CSV route and sensitive pages, and `IdleGuard` limits per role.
 
-**One manual spike** (not part of the automatic tests): on a throwaway user in your real Supabase project, prove that generating a one-time link and redeeming it creates a normal session that `getClaims()` accepts, under the Next.js and OpenNext setup we use. This writes a test user to your Auth system, so it needs your approval and gets deleted afterwards. If it fails, fall back to PIN-C.
+**Worker secret (you do this; I never see the key).** Only needed at build and deploy.
+1. Supabase dashboard, Project Settings, API Keys. Copy the **secret** key (starts `sb_secret_`). Do not paste it in chat.
+2. Locally add `SUPABASE_SECRET_KEY=...` to `.env.local` (git-ignored).
+3. Live: in the project folder run `npx wrangler secret put SUPABASE_SECRET_KEY`, paste, Enter. Or Cloudflare dashboard, Workers and Pages, `ab-wifi-vouchers`, Settings, Variables and Secrets, Add, type **Secret**.
+4. Never `NEXT_PUBLIC_`, never in git.
 
-### 8.9 Recommendation and smallest first version
-Recommend **PIN-B**: 6 digits, typed username, 5 tries then 15 minutes, hard lock on the second lockout, staff idle 5 minutes.
-- **v1 (about 2 days):** the spike, then `0005` and its tests, the pin and lockout libraries, `staffLogin` and the Staff tab with keypad, the owner Staff page (set or reset PIN, unlock, deactivate, reactivate, locked status), per-role idle limit, and the log events. Staff accounts are still created by hand in the Supabase dashboard (any long random password, since they will never use it) with the profile row from section 2, then you set the PIN in the app.
-- **v2:** staff change their own PIN; create staff accounts from the app (reuses the same secret); a human check (Cloudflare Turnstile) after 3 failures; optional shop-network or opening-hours rule; a cap such as 40 vouchers per staff member per hour to limit damage from a stolen login.
-- **Needs your approval:** the throwaway-user spike, adding the Worker secret yourself, applying `0003` to `0005`, and deploying.
+**Rules for that key in code:** `lib/supabase/admin.ts` begins with `import 'server-only'`, is used only inside `pinLogin` after the verify function says the PIN is right, and in full-owner-gated actions, and is never sent to the browser. `pinLogin` runs before anyone is signed in and can now start an owner session, so that code stays tiny and gets its own review.
+
+### 8.10 Tests
+**Pure unit tests first:** PIN rules for 6 and 8 digits (about 40 cases each way), random PIN generator always valid (1,000 samples), lockout vectors per role (exact boundaries, second lockout, hard lock, success resets, expiry), the "sensitive action needs a recent password" rule as a pure function, idle limits per role.
+
+**Local database harness with real roles:**
+- `user_pins` is unreadable and unwritable to `anon` and `authenticated`, even the owner. `user_pin_verify` is denied to both and allowed to `service_role`.
+- `set_user_pin` rejects trivial or wrong-length PINs, wrong role lengths, missing users and non-owners, and refuses an owner PIN from a daily session.
+- 20 parallel wrong tries leave exactly one lockout and a count at the limit, not beyond.
+- A correct PIN while locked still fails; after the time passes it works; success resets. Deactivated users fail. The owner PIN's hard lock holds until a password sign-in clears it.
+- **Session level:** with claims showing a recent password sign-in, `void_sale`, `import_vouchers`, plan and settings writes and `vouchers` reads succeed. With only a one-time-link sign-in, an old password time (over 30 minutes), or no method list, they are denied. `sell_cart`, sales reads and the log still work in a daily session. Staff behaviour is unchanged.
+- The same lockout vectors run against the SQL function and must match the pure rules. No audit row contains a PIN, and no function returns a hash.
+
+**Manual spike (needs your approval, not part of the automatic tests):** on a throwaway user in your Supabase project, prove that (1) generating a one-time link and redeeming it creates a normal session that `getClaims()` accepts under our Next.js and OpenNext setup, and (2) the token's method list differs between a password sign-in and that session. This writes a test user to your Auth system and is deleted afterwards. If (2) fails, use the `owner_elevations` fallback. If (1) fails, use PIN-C.
+
+### 8.11 Recommendation and smallest first version
+Recommend **PIN-B with the unified screen**, 6 digits for staff and 8 for the owner, owner PIN off until set, and sensitive actions gated on a recent password.
+- **v1a (about 2 days): staff PINs.** The spike, `0005`, the libraries, `pinLogin`, the unified login screen, the owner Staff page (set or reset a staff PIN, unlock, deactivate, reactivate, locked status), staff idle 5 minutes, log events. Staff accounts are still made by hand in the Supabase dashboard (any long random password, since they never use it) plus the profile row from section 2, then you set the PIN in the app. The owner keeps email and password.
+- **v1b (about 1 more day): owner PIN.** `0006` and the full-owner gating, the "unlock admin" password step, Settings "My PIN", the owner limits (8 digits, 3 tries, hard lock), the red "your PIN was locked" note. Do not switch the owner PIN on until `0006` is live and tested.
+- **v2:** trusted device for the owner, staff changing their own PIN, creating staff from the app (reuses the secret), a human check (Cloudflare Turnstile) after 3 failures, optional shop-network or opening-hours rules, and a cap such as 40 vouchers per staff member per hour to limit damage from a stolen login.
+- **Needs your approval:** the throwaway-user spike, adding the Worker secret yourself, applying `0003` to `0006`, and deploying.
 
 ## 9. Task list and approvals
 
@@ -281,13 +308,15 @@ Recommend **PIN-B**: 6 digits, typed username, 5 tries then 15 minutes, hard loc
 | 7 | Audit log v2: `record_event` and login, logout, idle and CSV events | 2 to 3 h | **apply**, **deploy** |
 | 8 | B-lite staff page (list, deactivate, reactivate) | half a day | **apply** (`set_staff_active`), **deploy** |
 | 9 | Create staff users from the app (reuses the PIN secret) | 1 day | **apply**, **deploy** |
-| 10 | PIN spike: one-time-link sign-in on a throwaway user | 0.5 h | **a throwaway user in your Supabase project**, and the Worker secret for local testing |
-| 11 | `0005_staff_pin.sql` plus lockout and RLS tests | 3 to 4 h | **apply to the real database** |
-| 12 | `lib/pin.ts`, `lib/lockout.ts`, `staffLogin`, Staff tab and keypad | 4 to 5 h | **Worker secret (you)**, **deploy** |
-| 13 | Owner `/staff` page (set or reset PIN, unlock, deactivate, reactivate); this replaces task 8 | 4 h | **deploy** |
-| 14 | Per-role idle limit (staff 5 min) | 0.5 h | **deploy** |
+| 10 | PIN spike: one-time-link sign-in on a throwaway user, and what the token's method list shows for password versus link sign-ins | 0.5 h | **a throwaway user in your Supabase project**, and the Worker secret for local testing |
+| 11 | `0005_user_pins.sql` plus lockout and RLS tests (staff and owner rules) | 3 to 4 h | **apply to the real database** |
+| 12 | `lib/pin.ts`, `lib/lockout.ts`, `pinLogin`, unified login screen and keypad | 4 to 5 h | **Worker secret (you)**, **deploy** |
+| 13 | Owner `/staff` page (set or reset PIN, unlock, deactivate, reactivate); replaces task 8 | 4 h | **deploy** |
+| 14 | Per-role idle limit (staff 5 min, owner 15) | 0.5 h | **deploy** |
+| 15 | **Owner PIN (v1b):** `0006_full_owner_gating.sql` plus session-level tests, "unlock admin" password step, Settings "My PIN", red "PIN was locked" note | 1 day | **apply to the real database**, **deploy** |
+| 16 | **Trusted device for the owner (v2):** device token table, cookie, "My devices" and revoke | 1 day | **apply**, **deploy** |
 
-Suggested order: 1, 2, 3, 4, 5, 6 together as one release (about 1.5 days of agent time), then 7. Then the PIN login as its own release (10, 11, 12, 13, 14; about 2 days). Task 8 is not needed if the PIN release is built, and task 9 only if staff change often.
+Suggested order: 1, 2, 3, 4, 5, 6 together as one release (about 1.5 days of agent time), then 7. Then the PIN login: 10, 11, 12, 13, 14 as release v1a (staff PINs, about 2 days), then 15 as v1b (owner PIN, about 1 more day). Do not switch on an owner PIN before 15 is live. Task 16 comes later. Task 8 is not needed if the PIN release is built, and task 9 only if staff change often.
 
 ## 10. Questions for you
 
@@ -295,7 +324,9 @@ Suggested order: 1, 2, 3, 4, 5, 6 together as one release (about 1.5 days of age
 2. Should staff be able to **void their own mistakes**? Today only you can.
 3. Is **v1 of the log** (sales, voids, imports, plan and settings changes, staff changes, plus the Logs page) enough to start, with login events later?
 4. Do you want the log to start empty from the day it is applied, or backfilled with past sales, voids and imports?
-5. PIN login: are 6 digits acceptable for staff (4 digits are not recommended)?
-6. Is a 5-minute idle sign-out for staff acceptable (the owner keeps 15)?
-7. Are you willing to add the Supabase secret key to Cloudflare yourself (steps in section 8.7)? Without it the PIN design needs to fall back to the weaker PIN-A.
-8. Should staff pick the username (typed, never listed on the login page) or should you assign it?
+5. PIN login: are 6 digits acceptable for staff and 8 for you (4 digits are not recommended)?
+6. Do you accept that with a PIN sign-in you must type your password to void, import, change plans or settings, manage staff or export (it stays good for 30 minutes)? This is the main price of an owner PIN.
+7. Is a 5-minute idle sign-out for staff acceptable (you keep 15)?
+8. Are you willing to add the Supabase secret key to Cloudflare yourself (steps in section 8.9)? Without it the PIN design falls back to the much weaker PIN-A, which I do not recommend, especially for the owner.
+9. Should you assign each username, or should staff choose theirs (typed, never listed on the login page)?
+10. Do you want the owner PIN in the first release, or staff PINs first and the owner PIN a day later (recommended)?
