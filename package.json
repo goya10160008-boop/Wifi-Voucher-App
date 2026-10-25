@@ -10,9 +10,12 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "predev": "node scripts/copy-ocr.mjs",
-    "prebuild": "node scripts/copy-ocr.mjs"
+    "prebuild": "node scripts/copy-ocr.mjs",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "1.20.13",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.118.0",
     "@tesseract.js-data/eng": "1.0.0",
@@ -33,6 +36,7 @@
     "eslint-config-next": "16.4.3",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "wrangler": "4.152.0"
   }
 }
