@@ -26,25 +26,24 @@ export function ReceiptScreen({ sales, tendered, id, createdAt, guest, room, bac
             <p className="receipt-meta">{when}</p>
           </header>
 
-          <ul className="receipt-sec receipt-lines" aria-label="Items">
-            {r.lines.map((l) => (
-              <li key={`${l.plan}|${l.minutes}|${l.price}`}>
-                <span>{l.qty} × {l.plan} <small>({durationLabel(l.minutes)})</small></span>
-                <span>{formatPeso(l.subtotal)}</span>
-              </li>
-            ))}
-          </ul>
-
-          <ol className="receipt-sec receipt-codes" aria-label="Codes">
-            {r.codes.map((c) => (
-              <li key={c.seq}>
-                <span className="receipt-seq" aria-hidden="true">{c.seq}.</span>
-                {c.voided
-                  ? <span className="receipt-voided" role="text" aria-label={`Code ${c.seq} voided, do not use`}>VOIDED</span>
-                  : <span className="receipt-code">{c.code}</span>}
-              </li>
-            ))}
-          </ol>
+          {r.lines.map((l) => (
+            <section key={`${l.plan}|${l.minutes}|${l.price}`} className="receipt-sec receipt-plan" aria-label={`${l.plan}, ${durationLabel(l.minutes)}`}>
+              <h2 className="receipt-plan-head">
+                <span>{l.plan} <small>({durationLabel(l.minutes)})</small></span>
+                <span>{l.qty} × {formatPeso(l.price)} = {formatPeso(l.subtotal)}</span>
+              </h2>
+              <ol className="receipt-codes">
+                {l.codes.map((c) => (
+                  <li key={c.seq}>
+                    <span className="receipt-seq" aria-hidden="true">{c.seq}.</span>
+                    {c.voided
+                      ? <span className="receipt-voided" role="text" aria-label={`Code ${c.seq} voided, do not use`}>VOIDED</span>
+                      : <span className="receipt-code">{c.code}</span>}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ))}
 
           <dl className="receipt-sec receipt-sum">
             <dt>Total</dt><dd>{formatPeso(r.total)}</dd>

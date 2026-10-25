@@ -165,6 +165,9 @@ test('receipt: all codes on one screenshot-ready receipt, nav hidden, copy as te
   await expect(paper).toContainText(/Receipt #[0-9A-F]{6}/);
   for (const c of codes) await expect(paper.getByText(c, { exact: true })).toBeVisible();
   await expect(paper).toContainText('Change');
+  // Every code sits under its plan's heading.
+  const planBlock = paper.getByRole('region', { name: new RegExp(plan) });
+  for (const c of codes) await expect(planBlock).toContainText(c);
   await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0); // nothing but the receipt
   // The buttons sit below the paper, outside a normal phone screenshot.
   const fold = await page.evaluate(() => ({ top: document.querySelector('.receipt-actions')!.getBoundingClientRect().top, vh: innerHeight }));
@@ -174,6 +177,7 @@ test('receipt: all codes on one screenshot-ready receipt, nav hidden, copy as te
   await expect(page.getByText('Receipt copied')).toBeVisible();
   const text = await page.evaluate(() => navigator.clipboard.readText());
   for (const c of codes) expect(text).toContain(c);
+  expect(text).toContain(plan);
   expect(text).toContain('Enter your code on the WiFi login page');
 
   await page.getByRole('button', { name: 'Done' }).click();

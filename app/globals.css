@@ -177,10 +177,10 @@ textarea.field { padding: 0.75rem 1rem; }
 .receipt-name { margin: 0; font-size: 20px; line-height: 1.2; font-weight: 700; }
 .receipt-meta { margin: 2px 0 0; font-size: 14px; color: var(--color-mute); }
 .receipt-sec { margin: 0; padding: 0.75rem 0 0; border-top: 2px dashed var(--color-mute); }
-.receipt-lines { list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 15px; }
-.receipt-lines li { display: flex; justify-content: space-between; gap: 0.5rem; }
-.receipt-lines small { color: var(--color-mute); }
-.receipt-codes { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.receipt-plan-head { margin: 0 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; font-size: 15px; font-weight: 700; }
+.receipt-plan-head small { font-weight: 500; color: var(--color-mute); }
+.receipt-plan-head span:last-child { font-size: 14px; font-weight: 600; white-space: nowrap; }
+.receipt-codes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .receipt-codes li { display: flex; align-items: baseline; justify-content: center; gap: 0.75rem; }
 .receipt-seq { min-width: 2.4ch; text-align: right; font-size: 15px; font-weight: 600; color: var(--color-mute); }
 .receipt-code { font-family: var(--font-mono); font-size: 38px; line-height: 1.1; font-weight: 500; letter-spacing: 0.1em; }
@@ -189,6 +189,7 @@ textarea.field { padding: 0.75rem 1rem; }
   color: var(--color-bad-ink); font: 700 18px var(--font-sans); letter-spacing: 0.1em; line-height: 1.6;
 }
 .receipt[data-dense] .receipt-codes { gap: 2px; }
+.receipt[data-dense] .receipt-sec { padding-top: 0.5rem; }
 .receipt[data-dense] .receipt-code { font-size: 28px; }
 .receipt-sum { display: grid; grid-template-columns: 1fr auto; gap: 2px 1rem; font-size: 16px; }
 .receipt-sum dd { margin: 0; text-align: right; font-weight: 600; }
