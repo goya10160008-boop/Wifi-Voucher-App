@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { formatPeso } from '@/lib/money';
+import { shortManilaTime } from '@/lib/short-time';
 import { VoucherCode } from '@/components/VoucherCode';
 import { ReceiptScreen } from '@/components/Receipt';
 import { VoidForm } from '../VoidForm';
@@ -23,7 +24,7 @@ export default async function SalePage({ params, searchParams }: {
       guest={sale.buyer_name} room={sale.buyer_room} backHref={`/sales/${sale.id}`} />;
   }
   const voided = sale.status === 'voided';
-  const when = new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(sale.created_at));
+  const when = shortManilaTime(sale.created_at);
 
   return (
     <main className="flex flex-col gap-4">

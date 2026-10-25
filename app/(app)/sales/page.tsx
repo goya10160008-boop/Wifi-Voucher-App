@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { formatPeso } from '@/lib/money';
 import { isDate, manilaDateOf, manilaDayEnd, manilaDayStart, manilaMonthStart } from '@/lib/manila';
+import { salesPresets } from '@/lib/sales-range';
+import { shortManilaTime, shortPeriod } from '@/lib/short-time';
 
 const PAGE = 50;
 
@@ -44,20 +46,30 @@ export default async function SalesPage({ searchParams }: {
   }
 
   const grand =(monthly ?? []).reduce((a, t) => a + Number(t.total_centavos), 0);
-  const fmt = new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' });
+  const now = new Date();
+  const link = (f: string, t: string) => `?${new URLSearchParams({ from: f, to: t, grain, ...(plan ? { plan } : {}) })}`;
   const qs = (n: number) => `?${new URLSearchParams({ from, to, grain, ...(plan ? { plan } : {}), page: String(n) })}`;
 
   return (
     <main className="flex flex-col gap-4">
       <h1 className="h1">Sales</h1>
+      <nav aria-label="Quick ranges" className="flex flex-wrap gap-2">
+        {salesPresets(today).map((p) => (
+          <Link key={p.label} href={link(p.from, p.to)} aria-current={p.from === from && p.to === to ? 'true' : undefined} className="chip px-4 text-[15px]">{p.label}</Link>
+        ))}
+      </nav>
       <form className="grid grid-cols-2 gap-2">
-        <input type="date" name="from" defaultValue={from} className="field" aria-label="From" />
-        <input type="date" name="to" defaultValue={to} className="field" aria-label="To" />
-        <select name="plan" defaultValue={plan ?? ''} className="field" aria-label="Plan">
+        <label className="min-w-0 text-sm text-mute">From
+          <input type="date" name="from" defaultValue={from} className="field date-field mt-1" />
+        </label>
+        <label className="min-w-0 text-sm text-mute">To
+          <input type="date" name="to" defaultValue={to} className="field date-field mt-1" />
+        </label>
+        <select name="plan" defaultValue={plan ?? ''} className="field min-w-0" aria-label="Plan">
           <option value="">All plans</option>
           {plans?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <select name="grain" defaultValue={grain} className="field" aria-label="Group by">
+        <select name="grain" defaultValue={grain} className="field min-w-0" aria-label="Group by">
           <option value="day">By day</option><option value="month">By month</option>
         </select>
         <button className="btn col-span-2">Apply</button>
@@ -68,7 +80,7 @@ export default async function SalesPage({ searchParams }: {
         <ul className="mt-2 flex flex-col gap-1">
           {totals?.map((t) => (
             <li key={`${t.period}-${t.plan_id}`} className="flex justify-between gap-2">
-              <span>{t.period} · {t.plan_name} × {t.sale_count}</span><span>{formatPeso(Number(t.total_centavos))}</span>
+              <span className="min-w-0">{shortPeriod(t.period, grain, now)} · {t.plan_name} × {t.sale_count}</span><span>{formatPeso(Number(t.total_centavos))}</span>
             </li>
           ))}
         </ul>
@@ -78,7 +90,7 @@ export default async function SalesPage({ searchParams }: {
         {entries.map((rows) => {
           const row = (s: (typeof rows)[number]) => (
             <Link href={`/sales/${s.id}`} className={`row-link ${s.status === 'voided' ? 'text-mute line-through' : ''}`}>
-              <span><b className="font-mono">{s.voucher_code}</b> · {s.plan_name}{s.status === 'voided' ? ' (voided)' : ''}<br /><small className="text-mute">{fmt.format(new Date(s.created_at))}{s.buyer_room ? ` · ${s.buyer_room}` : ''}</small></span>
+              <span className="min-w-0"><b className="font-mono">{s.voucher_code}</b> · {s.plan_name}{s.status === 'voided' ? ' (voided)' : ''}<br /><small className="text-mute">{shortManilaTime(s.created_at, now)}{s.buyer_room ? ` · ${s.buyer_room}` : ''}</small></span>
               <span>{formatPeso(s.price_centavos)}</span>
             </Link>
           );

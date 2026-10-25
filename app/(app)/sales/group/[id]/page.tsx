@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { formatPeso } from '@/lib/money';
+import { shortManilaTime } from '@/lib/short-time';
 import { VoucherCode } from '@/components/VoucherCode';
 import { CopyAll } from '@/components/CopyAll';
 import { ReceiptScreen } from '@/components/Receipt';
@@ -29,7 +30,7 @@ export default async function SaleGroupPage({ params, searchParams }: {
   const live = sales.filter((s) => s.status === 'completed');
   const byPlan = new Map<string, number>();
   for (const s of sales) byPlan.set(s.plan_name, (byPlan.get(s.plan_name) ?? 0) + 1);
-  const when = new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(sales[0].created_at));
+  const when = shortManilaTime(sales[0].created_at);
 
   return (
     <main className="flex flex-col gap-4">

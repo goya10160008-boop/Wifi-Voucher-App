@@ -26,3 +26,15 @@ describe('shortManilaTime', () => {
     expect(shortManilaTime('2026-10-19T16:00:00Z', now)).toBe('Oct 20 · 12:00 AM');
   });
 });
+
+import { shortPeriod } from '@/lib/short-time';
+
+describe('shortPeriod', () => {
+  it('day buckets: short month + day, year only when not this year', () => {
+    expect(shortPeriod('2026-10-25', 'day', now)).toBe('Oct 25');
+    expect(shortPeriod('2025-12-31', 'day', now)).toBe('Dec 31, 2025');
+  });
+  it('month buckets: month + year', () => {
+    expect(shortPeriod('2026-10-01', 'month', now)).toBe('Oct 2026');
+  });
+});

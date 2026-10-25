@@ -203,6 +203,21 @@ test('touch targets are at least 48px on the main screens', async ({ page }) => 
   }
 });
 
+test('home menu grid and sales filter fit the screen without sideways scrolling', async ({ page }) => {
+  needsLogin();
+  await login(page);
+  await expect(page.getByRole('heading', { name: 'Tap a plan to sell' })).toBeVisible();
+  for (const url of ['/', '/sales']) {
+    await page.goto(url);
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(over, `horizontal overflow on ${url}`).toBeLessThanOrEqual(0);
+  }
+  // The From and To date fields sit side by side inside the viewport.
+  const from = await page.getByLabel('From').boundingBox();
+  const to = await page.getByLabel('To').boundingBox();
+  expect(from && to && from.y === to.y && to.x + to.width <= page.viewportSize()!.width).toBe(true);
+});
+
 const IDLE_NOTICE = 'You were signed out because you were idle.';
 
 test('login shows the idle notice only for reason=idle', async ({ page }) => {

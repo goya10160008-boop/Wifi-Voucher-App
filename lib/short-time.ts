@@ -15,3 +15,11 @@ export function shortManilaTime(iso: string, now: Date = new Date()): string {
   const date = `${MONTHS[t.getUTCMonth()]} ${t.getUTCDate()}${day.slice(0, 4) === today.slice(0, 4) ? '' : `, ${day.slice(0, 4)}`}`;
   return `${date} · ${time}`;
 }
+
+/** Label for a totals bucket (a YYYY-MM-DD date): "Oct 25" or, for month buckets, "Oct 2026". */
+export function shortPeriod(date: string, grain: 'day' | 'month', now: Date = new Date()): string {
+  const month = MONTHS[Number(date.slice(5, 7)) - 1];
+  if (grain === 'month') return `${month} ${date.slice(0, 4)}`;
+  const year = date.slice(0, 4) === manilaDateOf(now).slice(0, 4) ? '' : `, ${date.slice(0, 4)}`;
+  return `${month} ${Number(date.slice(8, 10))}${year}`;
+}
