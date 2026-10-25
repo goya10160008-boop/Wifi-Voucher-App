@@ -5,7 +5,7 @@ Codes are generated in TP-Link Omada and exported as PDF. The app imports the co
 unused code per plan atomically, and records sales. Guests never log in. Cash only for now; GCash/Maya later
 (separate `payments` table already in the schema). Roles: `owner`, `staff` (limited, later).
 
-**Status:** all features built on branch `feat/app` (auth, plans, import w/ OCR, sell, sales/void/CSV, dashboard, settings, PWA, OpenNext config). DB migration applied to the remote Supabase project. Mint design + CSS animations applied to every screen. Multi-voucher cart sales built (migration `0002_sell_cart.sql` applied to the remote project 2026-10-25), screenshot receipt, 15-min idle sign-out. Not deployed. Website is turned OFF in Cloudflare (re-enable Production workers.dev toggle, then deploy, when the owner says). Waiting on: owner testing locally. Build notes: `docs/decisions.md`.
+**Status:** live on Cloudflare (https://ab-wifi-vouchers.mobile-voucher-app.workers.dev), `main` = deployed code. Built: auth, plans, import (OCR), cart sales, receipt, Mint design, idle sign-out, Home menu grid, Sales date fixes. Migrations 0001+0002 applied to the remote Supabase project. **Stage 1 (who sold, staff wording, audit log + `/logs`) is on branch `feat/stage1-log`; `supabase/migrations/0003_hardening_and_audit.sql` is NOT applied remotely yet (apply it first, then merge and deploy; `/logs` says the log is not switched on until then).** Next stages (see `docs/superpowers/plans/2026-10-25-staff-accounts-plan.md`): login/idle events, then staff PIN login, then owner PIN. Build notes: `docs/decisions.md`.
 Full design: `docs/superpowers/specs/2026-10-25-voucher-manager-design.md`. Plan: `docs/superpowers/plans/2026-10-25-voucher-manager-plan.md`.
 
 ## Stack
@@ -19,7 +19,7 @@ Full design: `docs/superpowers/specs/2026-10-25-voucher-manager-design.md`. Plan
 ## Folder structure (target)
 ```
 app/(auth)/login        app/(app)/{page,sell,sales,plans,import,settings}
-app/manifest.ts         components/VoucherCode.tsx
+app/manifest.ts         components/VoucherCode.tsx   app/(app)/logs (owner)
 lib/{supabase,auth,money,manila,parse-codes,pdf-text,rpc-errors}
 proxy.ts                supabase/migrations/   supabase/tests/
 tests/unit/             e2e/                   samples/   docs/

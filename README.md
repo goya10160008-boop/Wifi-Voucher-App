@@ -25,6 +25,8 @@ Open the site in Chrome (Android) or Safari (iPhone), then "Add to Home Screen".
 - **Home:** today's and this month's sales, a Sell button per plan with codes left, and a warning when stock is low.
 - **Sell:** use − and + on each plan for how many vouchers (up to 10 in one sale, mixed plans allowed), tap the cash received, see the change, Confirm. One voucher shows its code large with Copy and a QR. Several show every code with its own Copy, a Copy all button and the cash/change summary.
 - **Receipt:** on a sale page (after a sale, or from Sales), tap **Show receipt**. You get one clean receipt with every code, the total, cash and change. Take a normal phone screenshot of it. **Copy receipt as text** and **Done** are below it, out of the screenshot. A voided code shows VOIDED with no digits.
+- **Logs (owner):** a plain-sentence history of what happened (sales, voids, imports, plan and settings changes, staff changes), with a "Today by person" card. Needs database update `0003` first. Staff cannot open it.
+- **Who sold (owner):** each sale shows the seller's name, and the CSV has a `seller` column. Staff see "Your sales ..." because they only ever see their own.
 - **Sales:** history by date and plan. Tap a sale to see its code again. The owner can void a sale (the code is burned and never resold).
 - **Import:** choose the Omada PDF. If the PDF is a picture of the codes, the app reads it with OCR (takes a few seconds). Always check the count in the preview before importing.
 - **Idle sign-out:** after 15 minutes without any tap or key press you get a 30-second "Still there?" warning, then you are signed out. Tap **Stay signed in** to continue. Sales are saved the moment you confirm them, so nothing is lost.
