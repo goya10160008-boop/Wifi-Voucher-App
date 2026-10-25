@@ -10,6 +10,7 @@ const ICONS = {
   sales: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
   plans: 'M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5',
   import: 'M12 4v12M7 9l5-5 5 5M4 20h16',
+  logs: 'M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6',
   settings: 'M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M6 15v4',
 } as const;
 
@@ -19,6 +20,7 @@ const ITEMS: { href: string; label: string; icon: keyof typeof ICONS; owner?: bo
   { href: '/sales', label: 'Sales', icon: 'sales' },
   { href: '/plans', label: 'Plans', icon: 'plans', owner: true },
   { href: '/import', label: 'Import', icon: 'import', owner: true },
+  { href: '/logs', label: 'Logs', icon: 'logs', owner: true },
   { href: '/settings', label: 'Settings', icon: 'settings', owner: true },
 ];
 

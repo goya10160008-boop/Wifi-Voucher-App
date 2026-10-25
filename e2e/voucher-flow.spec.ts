@@ -21,6 +21,34 @@ test('protected pages redirect to login', async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
+test('the activity log redirects to login when signed out', async ({ page }) => {
+  await page.goto('/logs');
+  await expect(page).toHaveURL(/\/login/);
+});
+
+// Needs migration 0003 applied to the database the app talks to (otherwise the page says the log is not switched on).
+test('owner sees the activity log: by-person card and plain sentences', async ({ page }) => {
+  needsLogin();
+  await login(page);
+  await page.goto('/logs');
+  await expect(page.getByRole('heading', { name: 'Logs' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Today by person' })).toBeVisible();
+  await expect(page.getByText(/(sold \d+ vouchers?|imported \d+ codes?|created plan)/).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Logs' })).toBeVisible(); // in the bottom nav
+});
+
+// Optional second account: a staff user (profile role 'staff') must not reach the log.
+test('staff get a 404 on the activity log and no Logs link', async ({ page }) => {
+  test.skip(!process.env.E2E_STAFF_EMAIL || !process.env.E2E_STAFF_PASSWORD, 'set E2E_STAFF_EMAIL and E2E_STAFF_PASSWORD');
+  await page.goto('/login');
+  await page.getByPlaceholder('Email').fill(process.env.E2E_STAFF_EMAIL!);
+  await page.getByPlaceholder('Password').fill(process.env.E2E_STAFF_PASSWORD!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { name: 'A&B WiFi' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Logs' })).toHaveCount(0);
+  expect((await page.goto('/logs'))?.status()).toBe(404);
+});
+
 test('login screen renders (screenshot for visual review)', async ({ page }, info) => {
   await page.goto('/login');
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
