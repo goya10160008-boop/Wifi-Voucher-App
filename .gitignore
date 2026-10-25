@@ -9,3 +9,7 @@ playwright-report
 test-results
 *.tsbuildinfo
 supabase/.temp
+
+# real voucher codes
+samples/*.pdf
+samples/*.txt
