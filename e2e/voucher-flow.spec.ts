@@ -123,7 +123,7 @@ test('create plan, import, sell, copy, void, totals', async ({ page, context }) 
   await page.getByRole('tab', { name: /My cart/ }).click();
   await page.getByRole('button', { name: 'Go to payment' }).click();
   await page.getByRole('button', { name: '₱50.00' }).click();
-  await expect(page.getByText('Change: ₱30.00')).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Change to give back' })).toContainText('₱30.00');
   await page.getByRole('button', { name: 'Confirm sale' }).click();
 
   await expect(page).toHaveURL(/\/sales\/[0-9a-f-]{36}\?new=1/);
@@ -164,7 +164,7 @@ test('sell 3 vouchers in one sale: group page, copy all, void one code', async (
   await page.getByRole('tab', { name: /My cart/ }).click();
   await page.getByRole('button', { name: 'Go to payment' }).click();
   await page.getByRole('button', { name: '₱100.00' }).click();
-  await expect(page.getByText('Change: ₱40.00')).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Change to give back' })).toContainText('₱40.00');
   await page.getByRole('button', { name: 'Confirm sale' }).click();
 
   await expect(page).toHaveURL(/\/sales\/group\/[0-9a-f-]{36}\?new=1/);

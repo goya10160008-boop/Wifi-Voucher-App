@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_VOUCHERS, cartCount, cartLines, cartTotal, cashChips, changeFor, setQty } from '@/lib/cart';
+import { MAX_VOUCHERS, cartCount, cartLines, otherAmount, payStatus, cartTotal, cashChips, changeFor, setQty } from '@/lib/cart';
 
 const prices = { a: 2000, b: 5000 };
 
@@ -42,5 +42,21 @@ describe('cart (planId -> qty)', () => {
       { id: 'b', name: '3HRS', qty: 2, unit: 1000, subtotal: 2000 },
     ]);
     expect(cartLines({}, plans)).toEqual([]);
+  });
+
+  it('pay status: nothing chosen, short (with the missing amount), exact, over (with change)', () => {
+    expect(payStatus(2500, null)).toEqual({ state: 'none', change: 0, missing: 0 });
+    expect(payStatus(2500, 1000)).toEqual({ state: 'short', change: 0, missing: 1500 });
+    expect(payStatus(2500, 2500)).toEqual({ state: 'exact', change: 0, missing: 0 });
+    expect(payStatus(2500, 5000)).toEqual({ state: 'over', change: 2500, missing: 0 });
+    expect(payStatus(0, 5000).state).toBe('none'); // an empty cart is never payable
+  });
+
+  it('other amount: pesos text to centavos, rejecting junk, zero and absurd sums', () => {
+    expect(otherAmount('250')).toBe(25000);
+    expect(otherAmount(' 1,250.50 ')).toBe(125050);
+    expect(otherAmount('0.5')).toBe(50);
+    for (const bad of ['', 'abc', '-5', '0', '0.00', '12.345', '1e3', '1,000,000.01']) expect(otherAmount(bad)).toBeNull();
+    expect(otherAmount('1000000')).toBe(100_000_000); // the server's ceiling
   });
 });

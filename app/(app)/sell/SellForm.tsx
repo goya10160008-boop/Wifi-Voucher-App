@@ -1,12 +1,19 @@
 'use client';
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { MAX_VOUCHERS, cartCount, cartLines, cartTotal, cashChips, changeFor, setQty, type Cart } from '@/lib/cart';
+import { MAX_VOUCHERS, cartCount, cartLines, cartTotal, cashChips, otherAmount, payStatus, setQty, type Cart } from '@/lib/cart';
 import { formatPeso } from '@/lib/money';
 import { sell } from './actions';
 
 type Plan = { plan_id: string; plan_name: string; price_centavos: number; available: number; low_stock?: boolean };
 type Tab = 'plans' | 'cart' | 'pay';
+const STEPS: { id: Tab; label: string }[] = [{ id: 'plans', label: 'Plans' }, { id: 'cart', label: 'My cart' }, { id: 'pay', label: 'Pay' }];
+
+const LockIcon = () => (
+  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 017 0v3" />
+  </svg>
+);
 
 export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: string }) {
   const stock = Object.fromEntries(plans.map((p) => [p.plan_id, p.available]));
@@ -14,8 +21,11 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
   const [cart, setCart] = useState<Cart>(() => (initialPlan && stock[initialPlan] > 0 ? { [initialPlan]: 1 } : {}));
   const [tab, setTab] = useState<Tab>(() => (initialPlan && stock[initialPlan] > 0 ? 'cart' : 'plans'));
   const [tendered, setTendered] = useState<number | null>(null);
+  const [other, setOther] = useState('');
+  const [otherError, setOtherError] = useState('');
   const [name, setName] = useState('');
   const [room, setRoom] = useState('');
+  const [guestOpen, setGuestOpen] = useState(false);
   const [error, setError] = useState('');
   const [reused, setReused] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -26,21 +36,30 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
   const count = cartCount(cart);
   const total = cartTotal(cart, prices);
   const lines = cartLines(cart, plans);
-  const change = count > 0 && tendered !== null ? changeFor(total, tendered) : null;
-  const ready = count > 0 && change !== null && change >= 0;
+  const pay = payStatus(total, tendered);
+  const ready = count > 0 && (pay.state === 'exact' || pay.state === 'over');
   const shown: Tab = count === 0 && tab === 'pay' ? 'cart' : tab; // nothing to pay for
+  const guest = [name.trim(), room.trim() && `Room ${room.trim()}`].filter(Boolean).join(' · ');
 
   const go = (t: Tab) => { setTab(t); setClearing(false); };
+  const resetCash = () => { setTendered(null); setOther(''); setOtherError(''); };
   const updateQty = (id: string, qty: number) => {
     setCart((c) => setQty(c, id, qty, stock));
-    setTendered(null); // the total moved, so the cash received must be chosen again
+    resetCash(); // the total moved, so the cash received must be chosen again
     setClearing(false);
   };
   const clearCart = () => {
     if (!clearing) return setClearing(true);
     setCart({});
-    setTendered(null);
+    resetCash();
     setClearing(false);
+  };
+  const pickCash = (c: number) => { setTendered(c); setOther(''); setOtherError(''); };
+  const useOther = () => {
+    const c = otherAmount(other);
+    if (c === null) return setOtherError('Please type the amount in pesos, for example 250.');
+    setOtherError('');
+    setTendered(c);
   };
 
   const submit = () =>
@@ -67,22 +86,33 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
     );
   };
 
-  const tabs: { id: Tab; label: string; disabled?: boolean }[] = [
-    { id: 'plans', label: 'Plans' },
-    { id: 'cart', label: `My cart (${count})` },
-    { id: 'pay', label: 'Pay', disabled: count === 0 },
-  ];
+  const at = STEPS.findIndex((s) => s.id === shown);
+  const changeText = {
+    none: ['Change', 'Tap the cash below'],
+    short: ['Not enough cash', `Add ${formatPeso(pay.missing)} more`],
+    exact: ['✓ Exact amount', 'No change'],
+    over: ['✓ Change to give back', formatPeso(pay.change)],
+  }[pay.state];
 
   return (
     <div className="flex flex-col gap-5">
-      <div role="tablist" aria-label="Sale steps" className="tabs">
-        {tabs.map((t) => (
-          <button key={t.id} id={`tab-${t.id}`} role="tab" type="button" aria-selected={shown === t.id} aria-controls="sell-panel"
-            disabled={t.disabled} onClick={() => go(t.id)} className="chip">
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <ol role="tablist" aria-label="Sale steps" className="track">
+        {STEPS.map((s, k) => {
+          const locked = s.id === 'pay' && count === 0;
+          const st = locked ? 'locked' : k < at ? 'done' : k === at ? 'now' : 'todo';
+          const label = s.id === 'cart' ? `My cart (${count})` : s.label;
+          return (
+            <li key={s.id} role="presentation" className="tnode" data-s={st} data-line={k < at ? 'on' : 'off'}>
+              <button role="tab" type="button" id={`tab-${s.id}`} aria-selected={shown === s.id} aria-controls="sell-panel" disabled={locked}
+                aria-label={`${label}${locked ? ' (locked)' : st === 'done' ? ' (done)' : ''}`} onClick={() => go(s.id)}>
+                {locked ? <LockIcon /> : st === 'done' ? '✓' : k + 1}
+              </button>
+              <span>{label}</span>
+              {locked && <small>Locked</small>}
+            </li>
+          );
+        })}
+      </ol>
 
       <p role="status" className="text-lg font-semibold">
         {count === 0 ? 'Your cart is empty' : `${count} ${count === 1 ? 'voucher' : 'vouchers'} · ${formatPeso(total)}`}
@@ -129,8 +159,20 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
                 </li>
               ))}
             </ul>
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Guest name (optional)" aria-label="Guest name" className="field" />
-            <input value={room} onChange={(e) => setRoom(e.target.value)} maxLength={20} placeholder="Room (optional)" aria-label="Room" className="field" />
+            {guestOpen ? (
+              <div id="guest-box" className="card flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-lg font-semibold">Guest name and room</p>
+                  <button type="button" className="btn btn-ghost guest-close" aria-expanded="true" aria-controls="guest-box" onClick={() => setGuestOpen(false)}>Close</button>
+                </div>
+                <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Guest name (optional)" aria-label="Guest name" autoComplete="off" autoFocus className="field" />
+                <input value={room} onChange={(e) => setRoom(e.target.value)} maxLength={20} placeholder="Room (optional)" aria-label="Room" autoComplete="off" className="field" />
+              </div>
+            ) : (
+              <button type="button" className="guest-toggle" aria-expanded="false" aria-controls="guest-box" onClick={() => setGuestOpen(true)}>
+                {guest ? <><span>{guest}</span><span className="guest-edit">(edit)</span></> : <span>+ Add guest name or room (optional)</span>}
+              </button>
+            )}
             <button type="button" onClick={() => go('pay')} className="btn">Go to payment</button>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => go('plans')} className="btn btn-ghost">More plans</button>
@@ -147,18 +189,34 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
               {lines.map((l) => (
                 <li key={l.id} className="flex justify-between gap-3"><span>{l.qty} × {l.name}</span><span>{formatPeso(l.subtotal)}</span></li>
               ))}
-              {(name || room) && <li className="text-sm text-mute">{[name, room && `Room ${room}`].filter(Boolean).join(' · ')}</li>}
+              {guest && <li className="text-sm text-mute">{guest}</li>}
             </ul>
+            <div className="sb">
+              <div className="sbtile"><span>TOTAL</span><b>{formatPeso(total)}</b></div>
+              <div className="sbtile" data-s={tendered === null ? 'none' : 'set'}>
+                <span>CASH</span><b>{tendered === null ? 'Not chosen' : formatPeso(tendered)}</b>
+              </div>
+            </div>
+            <div className="sbchange" data-s={pay.state} role="status">
+              <span>{changeText[0]}</span><b>{changeText[1]}</b>
+            </div>
+            <p className="text-lg font-semibold">Tap the cash received</p>
             <div className="flex flex-wrap gap-2">
               {cashChips(total).map((c) => (
-                <button key={c} type="button" onClick={() => setTendered(c)} aria-pressed={tendered === c} className="chip">
+                <button key={c} type="button" onClick={() => pickCash(c)} aria-pressed={tendered === c} className="chip cash-chip">
                   {formatPeso(c)}
                 </button>
               ))}
             </div>
-            <p className="text-lg font-semibold" role="status">
-              {change === null ? 'Tap the cash received' : change >= 0 ? `Change: ${formatPeso(change)}` : 'Not enough cash'}
-            </p>
+            <div>
+              <label htmlFor="other" className="mb-1.5 block text-lg font-semibold">Other amount (pesos)</label>
+              <div className="flex gap-2">
+                <input id="other" value={other} onChange={(e) => setOther(e.target.value)} inputMode="decimal" autoComplete="off"
+                  placeholder="for example 250" className="field" style={{ minHeight: 56 }} />
+                <button type="button" className="btn btn-ghost" style={{ minWidth: '7rem' }} onClick={useOther}>Use it</button>
+              </div>
+              {otherError && <p role="alert" className="alert alert-bad mt-2">{otherError}</p>}
+            </div>
             {error && (
               <p role="alert" className="alert alert-bad">
                 {error}{reused && <> <Link href="/sales" className="font-semibold underline">Open Sales</Link></>}

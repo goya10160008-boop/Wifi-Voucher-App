@@ -176,10 +176,51 @@ textarea.field { padding: 0.75rem 1rem; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
-/* Plans | My cart | Pay tabs on /sell. Same look as .chip; the selected tab uses the same highlight. */
-.tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
-.tabs .chip { min-height: 56px; padding: 0 0.5rem; font-size: 17px; }
-.tabs .chip[aria-selected="true"] { background: var(--color-soft); border-color: var(--color-pri); }
+/* /sell: step track (Plans, My cart, Pay), collapsible guest details, cash buttons and the payment scoreboard. */
+.track { display: grid; grid-template-columns: repeat(3, 1fr); list-style: none; margin: 0; padding: 0; }
+.tnode { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tnode:not(:last-child)::after { content: ""; position: absolute; top: 26px; left: 50%; width: 100%; height: 5px; background: var(--color-off-line); z-index: 0; }
+.tnode[data-line="on"]::after { background: var(--color-pri); }
+.tnode button {
+  position: relative; z-index: 1; width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--color-mute);
+  background: var(--color-card); color: var(--color-ink); font: 700 24px var(--font-sans); cursor: pointer; display: grid; place-items: center;
+}
+.tnode[data-s="done"] button { background: var(--color-soft); border-color: var(--color-pri); color: var(--color-ok-ink); }
+.tnode[data-s="now"] button { background: var(--color-pri); border-color: var(--color-pri); color: var(--color-pri-ink); }
+.tnode[data-s="locked"] button { background: var(--color-off); border-color: var(--color-off-line); color: var(--color-mute); cursor: not-allowed; }
+.tnode button:focus-visible { outline: 3px solid var(--color-pri); outline-offset: 3px; }
+.tnode span { font: 700 18px/1.2 var(--font-sans); text-align: center; }
+.tnode[data-s="now"] span { color: var(--color-pri); }
+.tnode small { font-size: 16px; font-weight: 600; color: var(--color-mute); }
+
+.guest-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; min-height: 56px; padding: 0 1rem;
+  border-radius: 999px; font: 700 17px var(--font-sans); cursor: pointer; text-align: center;
+  background: var(--color-card); color: var(--color-ink); border: 1px solid var(--color-line);
+}
+.guest-toggle:focus-visible { outline: 3px solid var(--color-pri); outline-offset: 2px; }
+.guest-edit { text-decoration: underline; font-weight: 700; color: var(--color-pri); white-space: nowrap; }
+.guest-close { min-height: 56px; width: auto; padding: 0 1.25rem; }
+
+.cash-chip { min-height: 60px; font-size: 20px; padding: 0 1.25rem; gap: 0.4rem; }
+.cash-chip[aria-pressed="true"] { border: 3px solid var(--color-pri); }
+.cash-chip[aria-pressed="true"]::before { content: "\2713"; font-weight: 800; }
+
+.sb { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sbtile { background: var(--color-card); border-radius: var(--radius-card); box-shadow: var(--shadow-card); padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sbtile span { font-size: 18px; font-weight: 700; color: var(--color-mute); letter-spacing: 0.04em; }
+.sbtile b { font-size: 32px; line-height: 1.1; letter-spacing: -0.02em; }
+.sbtile[data-s="none"] { border: 3px dashed var(--color-off-line); box-shadow: none; background: var(--color-off); }
+.sbtile[data-s="none"] b { font-size: 20px; color: var(--color-mute); }
+.sbtile[data-s="set"] { border: 3px solid var(--color-pri); background: var(--color-soft); }
+.sbchange { border-radius: var(--radius-card); padding: 16px 20px; display: flex; flex-direction: column; gap: 2px; }
+.sbchange span { font-size: 20px; font-weight: 700; }
+.sbchange b { font-size: 44px; line-height: 1.1; letter-spacing: -0.02em; }
+.sbchange[data-s="none"] { background: var(--color-off); color: var(--color-mute); border: 3px dashed var(--color-off-line); }
+.sbchange[data-s="none"] b { font-size: 22px; }
+.sbchange[data-s="short"] b { font-size: 32px; }
+.sbchange[data-s="over"], .sbchange[data-s="exact"] { background: var(--color-ok-bg); color: var(--color-ok-ink); border: 3px solid var(--color-pri); }
+.sbchange[data-s="short"] { background: var(--color-bad-bg); color: var(--color-bad-ink); border: 3px solid var(--color-bad); }
 
 /* Quantity stepper on the cart plan rows. */
 .stepper { display: inline-flex; align-items: center; gap: 0.25rem; }

@@ -1,4 +1,6 @@
 // Pure cart maths for /sell. A cart is planId -> qty; money is integer centavos.
+import { pesosToCentavos } from '@/lib/money';
+
 export const MAX_VOUCHERS = 10;
 const BILLS = [2000, 5000, 10000, 20000, 50000, 100000];
 
@@ -32,4 +34,20 @@ export function cartLines(cart: Cart, plans: { plan_id: string; plan_name: strin
   return plans
     .filter((p) => (cart[p.plan_id] ?? 0) > 0)
     .map((p) => ({ id: p.plan_id, name: p.plan_name, qty: cart[p.plan_id], unit: p.price_centavos, subtotal: cart[p.plan_id] * p.price_centavos }));
+}
+
+const MAX_TENDERED = 100_000_000; // the server rejects more than this (sell action)
+
+/** What the Pay tab shows: nothing chosen yet, short (and by how much), exact, or over (and the change). */
+export function payStatus(total: number, tendered: number | null) {
+  if (total <= 0 || tendered === null) return { state: 'none' as const, change: 0, missing: 0 };
+  const diff = tendered - total;
+  if (diff < 0) return { state: 'short' as const, change: 0, missing: -diff };
+  return { state: diff === 0 ? ('exact' as const) : ('over' as const), change: diff, missing: 0 };
+}
+
+/** "Other amount" text in pesos to centavos; null for junk, zero, or more than the server accepts. */
+export function otherAmount(input: string): number | null {
+  const c = pesosToCentavos(input);
+  return c === null || c <= 0 || c > MAX_TENDERED ? null : c;
 }
