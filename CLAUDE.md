@@ -5,14 +5,14 @@ Codes are generated in TP-Link Omada and exported as PDF. The app imports the co
 unused code per plan atomically, and records sales. Guests never log in. Cash only for now; GCash/Maya later
 (separate `payments` table already in the schema). Roles: `owner`, `staff` (limited, later).
 
-**Status:** planning done, awaiting owner approval. No app code yet.
+**Status:** all features built on branch `feat/app` (auth, plans, import w/ OCR, sell, sales/void/CSV, dashboard, settings, PWA, OpenNext config). DB migration applied to the remote Supabase project. Not deployed. Waiting on: owner login + profile row (see README), parallel-sale test, final review. Build notes: `docs/decisions.md`.
 Full design: `docs/superpowers/specs/2026-10-25-voucher-manager-design.md`. Plan: `docs/superpowers/plans/2026-10-25-voucher-manager-plan.md`.
 
 ## Stack
 - Next.js 16.4 (App Router) + TypeScript **5.9.3 pinned** (not TS 7) + Tailwind 4 (CSS-first, no tailwind.config)
 - Supabase: Postgres + Auth + RLS (`@supabase/ssr`, publishable key, `getClaims()`)
 - Hosting: Cloudflare Workers via `@opennextjs/cloudflare` (Node runtime; NOT Pages / next-on-pages)
-- PDF text: `pdfjs-dist`, browser only. QR: `qrcode.react`
+- PDF text: `pdfjs-dist`, browser only; Omada PDFs have no text layer, so fallback is `tesseract.js` OCR (digits only, assets self-hosted via `scripts/copy-ocr.mjs`). QR: `qrcode.react`
 - Tests: vitest (unit + DB concurrency), Playwright (E2E)
 - Pin all dependency versions exactly; commit the lockfile.
 
