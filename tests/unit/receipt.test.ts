@@ -27,13 +27,23 @@ describe('buildReceipt', () => {
   it('groups lines by plan with qty and subtotal, keeps codes in seq order', () => {
     const r = buildReceipt(sales, 10000);
     expect(r.lines).toEqual([
-      { plan: '3 Hours', minutes: 180, qty: 2, price: 2000, subtotal: 4000 },
-      { plan: '1 Day', minutes: 1440, qty: 1, price: 5000, subtotal: 5000 },
+      { plan: '3 Hours', minutes: 180, qty: 2, price: 2000, subtotal: 4000, codes: [{ seq: 1, code: '111111', voided: false }, { seq: 2, code: '222222', voided: false }] },
+      { plan: '1 Day', minutes: 1440, qty: 1, price: 5000, subtotal: 5000, codes: [{ seq: 3, code: '333333', voided: false }] },
     ]);
     expect(r.codes.map((c) => c.code)).toEqual(['111111', '222222', '333333']);
     expect(r.total).toBe(9000);
     expect(r.cash).toBe(10000);
     expect(r.change).toBe(1000);
+  });
+
+  it('puts each code under its own plan line, in seq order', () => {
+    const r = buildReceipt(sales, null);
+    expect(r.lines.map((l) => l.codes.map((c) => c.code))).toEqual([['111111', '222222'], ['333333']]);
+  });
+
+  it('keeps a voided code under its plan with no digits', () => {
+    const r = buildReceipt([sale(1, '111111'), sale(2, '222222', '1 Day', 1440, 5000, 'voided')], null);
+    expect(r.lines[1].codes).toEqual([{ seq: 2, code: null, voided: true }]);
   });
 
   it('sorts by seq even if rows arrive shuffled', () => {
@@ -64,6 +74,7 @@ describe('buildReceiptText', () => {
     expect(t).toContain('25 Oct 2026, 1:05 pm');
     expect(t).toContain('1. 111111');
     expect(t).toContain('2. VOIDED');
+    expect(t).toContain('3 Hours (3 hours)');
     expect(t).not.toContain('222222');
     expect(t).toMatch(/Total:\s+₱40\.00/);
     expect(t).toMatch(/Cash:\s+₱50\.00/);
@@ -76,6 +87,18 @@ describe('buildReceiptText', () => {
   it('omits cash, change, guest and room when absent', () => {
     const t = buildReceiptText(buildReceipt([sale(1, '111111')], null), { number: 'X', when: 'now', guest: null, room: null });
     expect(t).not.toMatch(/Cash:|Change:|Guest:|Room:/);
+  });
+});
+
+describe('buildReceiptText grouping', () => {
+  it('prints a plan heading line, then that plan codes one per line', () => {
+    const r = buildReceipt([sale(1, '111111'), sale(2, '222222'), sale(3, '333333', '1 Day', 1440, 5000)], null);
+    const lines = buildReceiptText(r, { number: 'X', when: 'now', guest: null, room: null }).split('\n');
+    const i = lines.findIndex((l) => l.startsWith('3 Hours (3 hours)'));
+    expect(lines.slice(i + 1, i + 3)).toEqual(['1. 111111', '2. 222222']);
+    expect(lines[i + 3]).toBe('');
+    expect(lines[i + 4]).toMatch(/^1 Day \(24 hours\)/);
+    expect(lines[i + 5]).toBe('3. 333333');
   });
 });
 

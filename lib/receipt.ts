@@ -9,7 +9,8 @@ export type ReceiptSale = {
   seq: number | null; voucher_code: string; plan_name: string; duration_minutes: number; price_centavos: number; status: string;
 };
 export type ReceiptCode = { seq: number; code: string | null; voided: boolean };
-export type ReceiptLine = { plan: string; minutes: number; qty: number; price: number; subtotal: number };
+// codes: this plan's codes in seq order, so the receipt can print each code under its plan.
+export type ReceiptLine = { plan: string; minutes: number; qty: number; price: number; subtotal: number; codes: ReceiptCode[] };
 export type Receipt = {
   lines: ReceiptLine[]; codes: ReceiptCode[]; total: number; cash: number | null; change: number | null; voidedCount: number;
 };
@@ -30,9 +31,10 @@ export function buildReceipt(sales: ReceiptSale[], tendered: number | null): Rec
   const lines = new Map<string, ReceiptLine>();
   for (const s of rows) {
     const key = `${s.plan_name}|${s.duration_minutes}|${s.price_centavos}`;
-    const l = lines.get(key) ?? { plan: s.plan_name, minutes: s.duration_minutes, qty: 0, price: s.price_centavos, subtotal: 0 };
+    const l = lines.get(key) ?? { plan: s.plan_name, minutes: s.duration_minutes, qty: 0, price: s.price_centavos, subtotal: 0, codes: [] };
     l.qty += 1;
     l.subtotal += s.price_centavos;
+    l.codes.push(s.status === 'voided' ? { seq: s.seq, code: null, voided: true } : { seq: s.seq, code: s.voucher_code, voided: false });
     lines.set(key, l);
   }
   // The total is what was paid, so voided codes stay in it; their digits never reach the receipt.
@@ -49,11 +51,13 @@ export function buildReceipt(sales: ReceiptSale[], tendered: number | null): Rec
 
 export function buildReceiptText(r: Receipt, meta: { number: string; when: string; guest: string | null; room: string | null }) {
   const out = [BUSINESS_NAME, `Receipt #${meta.number}`, meta.when, ''];
-  for (const l of r.lines) out.push(`${l.qty} x ${l.plan} (${durationLabel(l.minutes)}) @ ${formatPeso(l.price)} = ${formatPeso(l.subtotal)}`);
-  out.push('', 'CODES');
-  for (const c of r.codes) out.push(`${c.seq}. ${c.voided ? 'VOIDED' : c.code}`);
-  if (r.voidedCount) out.push('Voided codes cannot be used.');
-  out.push('', `Total:  ${formatPeso(r.total)}`);
+  for (const l of r.lines) {
+    out.push(`${l.plan} (${durationLabel(l.minutes)}) - ${l.qty} x ${formatPeso(l.price)} = ${formatPeso(l.subtotal)}`);
+    for (const c of l.codes) out.push(`${c.seq}. ${c.voided ? 'VOIDED' : c.code}`);
+    out.push('');
+  }
+  if (r.voidedCount) out.push('Voided codes cannot be used.', '');
+  out.push(`Total:  ${formatPeso(r.total)}`);
   if (r.cash !== null && r.change !== null) out.push(`Cash:   ${formatPeso(r.cash)}`, `Change: ${formatPeso(r.change)}`);
   if (meta.guest) out.push(`Guest: ${meta.guest}`);
   if (meta.room) out.push(`Room: ${meta.room}`);
