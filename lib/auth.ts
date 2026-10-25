@@ -1,10 +1,12 @@
+import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
 export type Role = 'owner' | 'staff';
 
 /** Verified user id + role, or null. Role comes from profiles (RLS: users read their own row). */
-export async function getSession() {
+// cache(): layout and page share one lookup per request instead of repeating it.
+export const getSession = cache(async () => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims?.sub;
@@ -16,7 +18,7 @@ export async function getSession() {
     .eq('active', true)
     .maybeSingle();
   return { supabase, userId, role: (profile?.role ?? null) as Role | null, name: profile?.display_name ?? null };
-}
+});
 
 export async function requireUser() {
   const s = await getSession();
