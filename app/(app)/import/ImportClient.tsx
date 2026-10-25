@@ -2,9 +2,18 @@
 import { useState, useTransition } from 'react';
 import { parseCodes } from '@/lib/parse-codes';
 import { extractPdfText } from '@/lib/pdf-text';
+import { formatSize, importSummary, previousImport, recordImport, shortName, type Store } from '@/lib/import-history';
 import { importCodes, type ImportResult } from './actions';
 
 type Plan = { id: string; name: string };
+type Source = { name: string; size?: number };
+
+// localStorage can throw when blocked (private mode): fall back to "no history".
+const history = (): Store => {
+  try { return window.localStorage; } catch { return { getItem: () => null, setItem: () => {} }; }
+};
+const manila = (iso: string) =>
+  new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(iso));
 
 export function ImportClient({ plans }: { plans: Plan[] }) {
   const [codes, setCodes] = useState<string[]>([]);
@@ -13,10 +22,14 @@ export function ImportClient({ plans }: { plans: Plan[] }) {
   const [paste, setPaste] = useState('');
   const [status, setStatus] = useState('');
   const [result, setResult] = useState<ImportResult>();
+  const [source, setSource] = useState<Source | null>(null);
+  const [repeatAt, setRepeatAt] = useState<string | null>(null);
+  const [done, setDone] = useState('');
   const [pending, start] = useTransition();
 
-  const load = (text: string) => {
+  const load = (text: string, from: Source) => {
     const found = parseCodes(text);
+    setSource(from);
     setCodes(found);
     setOff(new Set());
     setResult(undefined);
@@ -25,15 +38,23 @@ export function ImportClient({ plans }: { plans: Plan[] }) {
 
   async function onFile(file?: File) {
     if (!file) return;
+    const from = { name: file.name, size: file.size };
+    setSource(from); // show the name straight away, before the slow reading starts
+    setCodes([]);
+    setResult(undefined);
+    setRepeatAt(previousImport(history(), file.name, file.size)?.at ?? null);
     setStatus('Reading PDF…');
     try {
-      load(await extractPdfText(file, setStatus));
+      load(await extractPdfText(file, setStatus), from);
     } catch {
+      setSource(null);
       setStatus('Could not read that PDF. Try pasting the codes instead.');
     }
   }
 
   const selected = codes.filter((c) => !off.has(c));
+  const planName = plans.find((p) => p.id === planId)?.name ?? '';
+  const sourceName = source ? shortName(source.name) : 'Pasted text';
   const toggle = (c: string) =>
     setOff((prev) => {
       const next = new Set(prev);
@@ -45,7 +66,13 @@ export function ImportClient({ plans }: { plans: Plan[] }) {
     start(async () => {
       const r = await importCodes(planId, selected);
       setResult(r);
-      if (!('error' in r)) setCodes([]);
+      if (!('error' in r)) {
+        setDone(`from ${sourceName} into ${planName}`);
+        if (source?.size !== undefined) recordImport(history(), source.name, source.size, new Date().toISOString());
+        setCodes([]);
+        setSource(null);
+        setRepeatAt(null);
+      }
     });
 
   return (
@@ -58,8 +85,21 @@ export function ImportClient({ plans }: { plans: Plan[] }) {
         <summary className="flex min-h-12 cursor-pointer items-center font-semibold">Or paste codes / CSV</summary>
         <textarea value={paste} onChange={(e) => setPaste(e.target.value)} rows={5}
           className="field mt-2 font-mono" aria-label="Pasted codes" />
-        <button onClick={() => load(paste)} className="btn btn-ghost mt-2">Read codes</button>
+        <button onClick={() => load(paste, { name: 'Pasted text' })} className="btn btn-ghost mt-2">Read codes</button>
       </details>
+
+      {source && (
+        <div className="card flex flex-col gap-1" title={source.name}>
+          <span className="text-sm text-mute">{source.size === undefined ? 'Source' : 'File'}</span>
+          <b className="break-all">{sourceName}</b>
+          {source.size !== undefined && <span className="text-sm text-mute">{formatSize(source.size)}</span>}
+        </div>
+      )}
+      {repeatAt && source && (
+        <p role="alert" className="alert alert-warn">
+          You already imported a file named {sourceName} on {manila(repeatAt)}. Importing it again will skip codes already in the system.
+        </p>
+      )}
       {status && <p role="status" className="alert alert-warn">{status}</p>}
 
       {codes.length > 0 && (
@@ -80,6 +120,7 @@ export function ImportClient({ plans }: { plans: Plan[] }) {
             <option value="">Choose plan…</option>
             {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
+          <p role="status" className="card break-words font-semibold">{importSummary(selected.length, sourceName, planName)}</p>
           <button disabled={!planId || !selected.length || pending} aria-busy={pending} onClick={submit} className="btn">
             {pending ? 'Importing…' : `Import ${selected.length} codes`}
           </button>
@@ -89,7 +130,7 @@ export function ImportClient({ plans }: { plans: Plan[] }) {
       {result && ('error' in result
         ? <p role="alert" className="alert alert-bad">{result.error}</p>
         : <p role="status" className="alert alert-ok">
-            Imported {result.inserted}. Already had {result.skippedDuplicate}. Invalid {result.skippedInvalid}.
+            Imported {result.inserted} {done}. Already had {result.skippedDuplicate}. Invalid {result.skippedInvalid}.
           </p>)}
     </div>
   );
