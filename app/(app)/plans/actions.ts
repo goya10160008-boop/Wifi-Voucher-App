@@ -9,12 +9,11 @@ function parsePlan(form: FormData) {
   const name = String(form.get('name') ?? '').trim();
   const minutes = Number(form.get('hours')) * 60;
   const price = pesosToCentavos(String(form.get('price') ?? ''));
-  const sort = Number(form.get('sort_order') || 0);
   if (!name || name.length > 60) return { error: 'Name is required (max 60 characters).' } as const;
   if (!Number.isInteger(minutes) || minutes <= 0) return { error: 'Hours must be a whole number above 0.' } as const;
   if (price === null || price > 10_000_000) return { error: 'Enter a valid price, like 20 or 20.50.' } as const;
-  if (!Number.isInteger(sort) || Math.abs(sort) > 10_000) return { error: 'Sort order must be a whole number.' } as const;
-  return { row: { name, duration_minutes: minutes, price_centavos: price, sort_order: sort } } as const;
+  // Order is automatic: sort_order stays 0, so lists fall back to cheapest first.
+  return { row: { name, duration_minutes: minutes, price_centavos: price } } as const;
 }
 
 const dbError = (e: { code?: string }) =>
