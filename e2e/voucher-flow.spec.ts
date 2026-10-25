@@ -43,7 +43,10 @@ test('PDF with outlined glyphs is read by OCR and shows a preview', async ({ pag
   if (await page.getByText('Create a plan first').isVisible()) await createPlan(page, `Seed ${run}`);
   await page.goto('/import');
   await page.locator('input[type=file]').setInputFiles(path.join(__dirname, '../samples/3HRS_10202026.pdf'));
+  // The chosen file name shows at once and again in the confirm sentence above the Import button.
+  await expect(page.locator('b', { hasText: '3HRS_10202026.pdf' })).toBeVisible();
   await expect(page.getByText(/56 of 56 codes selected/)).toBeVisible({ timeout: 100_000 });
+  await expect(page.getByText('Importing 56 codes from 3HRS_10202026.pdf (choose a plan)')).toBeVisible();
 });
 
 async function createPlan(page: Page, name: string) {
@@ -71,7 +74,7 @@ test('create plan, import, sell, copy, void, totals', async ({ page, context }) 
   await page.getByRole('button', { name: codes[2] }).click(); // untick one
   await page.getByLabel('Plan', { exact: true }).selectOption({ label: plan });
   await page.getByRole('button', { name: 'Import 2 codes' }).click();
-  await expect(page.getByText('Imported 2. Already had 0. Invalid 0.')).toBeVisible();
+  await expect(page.getByText(`Imported 2 from Pasted text into ${plan}. Already had 0. Invalid 0.`)).toBeVisible();
 
   await page.goto('/sell');
   await expect(page.getByRole('listitem').filter({ hasText: plan })).toContainText('2 left');
@@ -109,7 +112,7 @@ test('sell 3 vouchers in one sale: group page, copy all, void one code', async (
   await page.getByRole('button', { name: 'Read codes' }).click();
   await page.getByLabel('Plan', { exact: true }).selectOption({ label: plan });
   await page.getByRole('button', { name: 'Import 3 codes' }).click();
-  await expect(page.getByText('Imported 3.')).toBeVisible();
+  await expect(page.getByText(`Imported 3 from Pasted text into ${plan}.`)).toBeVisible();
 
   await page.goto('/sell');
   const add = page.getByRole('button', { name: 'Add one ' + plan });
@@ -149,7 +152,7 @@ test('receipt: all codes on one screenshot-ready receipt, nav hidden, copy as te
   await page.getByRole('button', { name: 'Read codes' }).click();
   await page.getByLabel('Plan', { exact: true }).selectOption({ label: plan });
   await page.getByRole('button', { name: 'Import 3 codes' }).click();
-  await expect(page.getByText('Imported 3.')).toBeVisible();
+  await expect(page.getByText(`Imported 3 from Pasted text into ${plan}.`)).toBeVisible();
 
   await page.goto('/sell');
   const add = page.getByRole('button', { name: 'Add one ' + plan });
