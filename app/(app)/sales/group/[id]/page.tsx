@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { formatPeso } from '@/lib/money';
+import { loadNames, sellerLabel } from '@/lib/seller';
 import { shortManilaTime } from '@/lib/short-time';
 import { VoucherCode } from '@/components/VoucherCode';
 import { CopyAll } from '@/components/CopyAll';
@@ -31,6 +32,7 @@ export default async function SaleGroupPage({ params, searchParams }: {
   const byPlan = new Map<string, number>();
   for (const s of sales) byPlan.set(s.plan_name, (byPlan.get(s.plan_name) ?? 0) + 1);
   const when = shortManilaTime(sales[0].created_at);
+  const seller = role === 'owner' ? sellerLabel(await loadNames(supabase, [sales[0].sold_by]), sales[0].sold_by) : null;
 
   return (
     <main className="flex flex-col gap-4">
@@ -46,6 +48,7 @@ export default async function SaleGroupPage({ params, searchParams }: {
         <dt className="text-mute">Guest</dt><dd>{sales[0].buyer_name || '—'}</dd>
         <dt className="text-mute">Room</dt><dd>{sales[0].buyer_room || '—'}</dd>
         <dt className="text-mute">Sold</dt><dd>{when}</dd>
+        {seller && <><dt className="text-mute">Sold by</dt><dd>{seller}</dd></>}
       </dl>
 
       {live.length > 1 && <CopyAll codes={live.map((s) => s.voucher_code)} />}

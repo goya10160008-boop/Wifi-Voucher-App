@@ -1,5 +1,6 @@
 import { requireRole } from '@/lib/auth';
 import { isDate, manilaDayEnd, manilaDayStart } from '@/lib/manila';
+import { loadNames, sellerLabel } from '@/lib/seller';
 
 const BATCH = 1000; // hosted Supabase caps each response at 1000 rows by default
 // Quote every cell and neutralise spreadsheet formulas (also after a leading tab/CR) in typed text.
@@ -22,8 +23,15 @@ export async function GET(req: Request) {
     if (data.length < BATCH) break;
   }
 
-  const head = ['created_at', 'status', 'code', 'plan', 'price_php', 'guest', 'room', 'void_reason', 'group', 'seq'];
-  const rows = sales.map((s) => [s.created_at, s.status, s.voucher_code, s.plan_name, s.price_centavos / 100, s.buyer_name, s.buyer_room, s.void_reason, s.group_id, s.seq]);
+  let names;
+  try {
+    names = await loadNames(supabase, sales.map((s) => s.sold_by));
+  } catch {
+    return new Response('Could not build the backup. Please try again.', { status: 500 });
+  }
+
+  const head = ['created_at', 'status', 'code', 'plan', 'price_php', 'guest', 'room', 'void_reason', 'group', 'seq', 'seller'];
+  const rows = sales.map((s) => [s.created_at, s.status, s.voucher_code, s.plan_name, s.price_centavos / 100, s.buyer_name, s.buyer_room, s.void_reason, s.group_id, s.seq, sellerLabel(names, s.sold_by)]);
   const csv = '﻿' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\n');
   return new Response(csv, {
     headers: {

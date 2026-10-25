@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { formatPeso } from '@/lib/money';
+import { loadNames, sellerLabel } from '@/lib/seller';
 import { shortManilaTime } from '@/lib/short-time';
 import { VoucherCode } from '@/components/VoucherCode';
 import { ReceiptScreen } from '@/components/Receipt';
@@ -24,6 +25,7 @@ export default async function SalePage({ params, searchParams }: {
       guest={sale.buyer_name} room={sale.buyer_room} backHref={`/sales/${sale.id}`} />;
   }
   const voided = sale.status === 'voided';
+  const seller = role === 'owner' ? sellerLabel(await loadNames(supabase, [sale.sold_by]), sale.sold_by) : null;
   const when = shortManilaTime(sale.created_at);
 
   return (
@@ -40,6 +42,7 @@ export default async function SalePage({ params, searchParams }: {
         <dt className="text-mute">Guest</dt><dd>{sale.buyer_name || '—'}</dd>
         <dt className="text-mute">Room</dt><dd>{sale.buyer_room || '—'}</dd>
         <dt className="text-mute">Sold</dt><dd>{when}</dd>
+        {seller && <><dt className="text-mute">Sold by</dt><dd>{seller}</dd></>}
       </dl>
       {sale.group_id && <Link href={`/sales/group/${sale.group_id}`} className="btn btn-ghost">See all codes sold together</Link>}
       {role === 'owner' && !voided && <VoidForm id={sale.id} />}

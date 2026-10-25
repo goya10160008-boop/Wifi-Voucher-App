@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { formatPeso } from '@/lib/money';
 import { isDate, manilaDateOf, manilaDayEnd, manilaDayStart, manilaMonthStart } from '@/lib/manila';
+import { totalsLabels } from '@/lib/labels';
 import { salesPresets } from '@/lib/sales-range';
+import { loadNames, sellerLabel } from '@/lib/seller';
 import { shortManilaTime, shortPeriod } from '@/lib/short-time';
 
 const PAGE = 50;
@@ -31,6 +33,11 @@ export default async function SalesPage({ searchParams }: {
   ]);
   // Show a real error, never a quiet "₱0.00".
   if (e1 || e2 || e3 || e4) throw new Error('Could not load sales. Please try again.');
+
+  // The owner sees who sold each code (staff only see their own sales, so no names for them).
+  const names = role === 'owner' ? await loadNames(supabase, (sales ?? []).map((s) => s.sold_by)) : null;
+  const by = (id: string) => (names ? ` · ${sellerLabel(names, id)}` : '');
+  const labels = totalsLabels(role);
 
   // Rows of one cart sit together: keep first-seen order, gather the rest of a group under it.
   const entries: NonNullable<typeof sales>[] = [];
@@ -76,7 +83,7 @@ export default async function SalesPage({ searchParams }: {
       </form>
 
       <section className="card">
-        <p className="text-lg font-bold">Total: {formatPeso(grand)}</p>
+        <p className="text-lg font-bold">{labels.total}: {formatPeso(grand)}</p>
         <ul className="mt-2 flex flex-col gap-1">
           {totals?.map((t) => (
             <li key={`${t.period}-${t.plan_id}`} className="flex justify-between gap-2">
@@ -90,7 +97,7 @@ export default async function SalesPage({ searchParams }: {
         {entries.map((rows) => {
           const row = (s: (typeof rows)[number]) => (
             <Link href={`/sales/${s.id}`} className={`row-link ${s.status === 'voided' ? 'text-mute line-through' : ''}`}>
-              <span className="min-w-0"><b className="font-mono">{s.voucher_code}</b> · {s.plan_name}{s.status === 'voided' ? ' (voided)' : ''}<br /><small className="text-mute">{shortManilaTime(s.created_at, now)}{s.buyer_room ? ` · ${s.buyer_room}` : ''}</small></span>
+              <span className="min-w-0"><b className="font-mono">{s.voucher_code}</b> · {s.plan_name}{s.status === 'voided' ? ' (voided)' : ''}<br /><small className="text-mute">{shortManilaTime(s.created_at, now)}{s.buyer_room ? ` · ${s.buyer_room}` : ''}{by(s.sold_by)}</small></span>
               <span>{formatPeso(s.price_centavos)}</span>
             </Link>
           );
@@ -99,7 +106,7 @@ export default async function SalesPage({ searchParams }: {
           return (
             <li key={rows[0].group_id} className="card flex flex-col gap-2 p-3">
               <Link href={`/sales/group/${rows[0].group_id}`} className="flex min-h-12 items-center justify-between font-semibold">
-                <span>{rows.length} codes · {formatPeso(live.reduce((a, s) => a + s.price_centavos, 0))}{live.length < rows.length ? ` (${rows.length - live.length} voided)` : ''}</span>
+                <span>{rows.length} codes · {formatPeso(live.reduce((a, s) => a + s.price_centavos, 0))}{live.length < rows.length ? ` (${rows.length - live.length} voided)` : ''}{by(rows[0].sold_by)}</span>
                 <span className="text-pri">Open →</span>
               </Link>
               <ul className="flex flex-col gap-2">{rows.map((s) => <li key={s.id}>{row(s)}</li>)}</ul>

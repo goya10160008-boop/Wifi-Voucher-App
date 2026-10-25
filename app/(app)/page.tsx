@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { durationLabel } from '@/lib/duration';
+import { totalsLabels } from '@/lib/labels';
 import { formatPeso } from '@/lib/money';
 import { manilaDateOf, manilaMonthStart } from '@/lib/manila';
 
@@ -21,6 +22,7 @@ export default async function Home() {
   const d = sum(day);
   const m = sum(month);
   const low = stock?.filter((p) => p.low_stock) ?? [];
+  const labels = totalsLabels(role);
 
   return (
     <main className="flex flex-col gap-5">
@@ -35,8 +37,8 @@ export default async function Home() {
         </p>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <section className="card flex flex-col"><span className="text-sm text-mute">Today</span><b className="text-[22px]">{formatPeso(d.pesos)}</b><span className="text-sm text-mute">{d.count} sales</span></section>
-        <section className="card flex flex-col"><span className="text-sm text-mute">This month</span><b className="text-[22px]">{formatPeso(m.pesos)}</b><span className="text-sm text-mute">{m.count} sales</span></section>
+        <section className="card flex flex-col"><span className="text-sm text-mute">{labels.today}</span><b className="text-[22px]">{formatPeso(d.pesos)}</b><span className="text-sm text-mute">{d.count} sales</span></section>
+        <section className="card flex flex-col"><span className="text-sm text-mute">{labels.month}</span><b className="text-[22px]">{formatPeso(m.pesos)}</b><span className="text-sm text-mute">{m.count} sales</span></section>
       </div>
       <h2 className="text-[17px] font-bold">Tap a plan to sell</h2>
       <div className="menu">
