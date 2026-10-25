@@ -144,3 +144,16 @@ textarea.field { padding: 0.75rem 1rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* Quantity stepper on the cart plan rows. */
+.stepper { display: inline-flex; align-items: center; gap: 0.25rem; }
+.stepper button {
+  width: 48px; height: 48px; border-radius: 999px; border: 1px solid var(--color-line);
+  background: var(--color-card); color: var(--color-ink); font: 700 24px/1 var(--font-sans); cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.stepper button:active:not(:disabled) { transform: scale(0.92); }
+.stepper button:disabled { opacity: 0.35; cursor: not-allowed; }
+.stepper button:focus-visible { outline: 3px solid var(--color-pri); outline-offset: 2px; }
+.stepper output { min-width: 2rem; text-align: center; font: 700 20px var(--font-sans); }
+.plan-row[data-on="true"] { outline: 2px solid var(--color-pri); background: var(--color-soft); }
