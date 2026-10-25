@@ -136,6 +136,51 @@ test('sell 3 vouchers in one sale: group page, copy all, void one code', async (
   await expect(page.getByRole('button', { name: 'Copy all 2 codes' })).toBeVisible(); // only live codes are copied
 });
 
+test('receipt: all codes on one screenshot-ready receipt, nav hidden, copy as text, done', async ({ page, context }) => {
+  needsLogin();
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await login(page);
+  const plan = `E2E receipt ${run}`;
+  await createPlan(page, plan);
+  const codes = [`${run}7`, `${run}8`, `${run}9`].map((c) => c.padStart(8, '0'));
+  await page.goto('/import');
+  await page.getByText('Or paste codes / CSV').click();
+  await page.getByLabel('Pasted codes').fill(codes.join('\n'));
+  await page.getByRole('button', { name: 'Read codes' }).click();
+  await page.getByLabel('Plan', { exact: true }).selectOption({ label: plan });
+  await page.getByRole('button', { name: 'Import 3 codes' }).click();
+  await expect(page.getByText('Imported 3.')).toBeVisible();
+
+  await page.goto('/sell');
+  const add = page.getByRole('button', { name: 'Add one ' + plan });
+  for (let i = 0; i < 3; i++) await add.click();
+  await page.getByRole('button', { name: '₱100.00' }).click();
+  await page.getByRole('button', { name: 'Confirm sale' }).click();
+  await expect(page).toHaveURL(/\/sales\/group\/[0-9a-f-]{36}\?new=1/);
+
+  await page.getByRole('link', { name: 'Show receipt' }).click();
+  await expect(page).toHaveURL(/receipt=1/);
+  const paper = page.getByRole('article', { name: 'Receipt' });
+  await expect(paper).toContainText('A&B Boarding House WiFi');
+  await expect(paper).toContainText(/Receipt #[0-9A-F]{6}/);
+  for (const c of codes) await expect(paper.getByText(c, { exact: true })).toBeVisible();
+  await expect(paper).toContainText('Change');
+  await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0); // nothing but the receipt
+  // The buttons sit below the paper, outside a normal phone screenshot.
+  const fold = await page.evaluate(() => ({ top: document.querySelector('.receipt-actions')!.getBoundingClientRect().top, vh: innerHeight }));
+  expect(fold.top).toBeGreaterThanOrEqual(fold.vh);
+
+  await page.getByRole('button', { name: 'Copy receipt as text' }).click();
+  await expect(page.getByText('Receipt copied')).toBeVisible();
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  for (const c of codes) expect(text).toContain(c);
+  expect(text).toContain('Enter your code on the WiFi login page');
+
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page).toHaveURL(/\/sales\/group\/[0-9a-f-]{36}\?new=1$/);
+  await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
+});
+
 test('touch targets are at least 48px on the main screens', async ({ page }) => {
   needsLogin();
   await login(page);

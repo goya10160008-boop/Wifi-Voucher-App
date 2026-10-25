@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { Role } from '@/lib/auth';
 
 // Stroke icons, 24x24. Decorative: the text label names the link.
@@ -24,8 +24,10 @@ const ITEMS: { href: string; label: string; icon: keyof typeof ICONS; owner?: bo
 
 export function Nav({ role }: { role: Role }) {
   const path = usePathname();
+  const receipt = useSearchParams().get('receipt') === '1';
   const items = ITEMS.filter((i) => !i.owner || role === 'owner');
   const active = items.findIndex((i) => (i.href === '/' ? path === '/' : path.startsWith(i.href)));
+  if (receipt) return null; // screenshot mode: nothing but the receipt
   return (
     <nav aria-label="Main" className="nav" data-none={active < 0 ? '' : undefined}
       style={{ '--n': items.length, '--i': Math.max(active, 0) } as React.CSSProperties}>
