@@ -27,6 +27,7 @@ Open the site in Chrome (Android) or Safari (iPhone), then "Add to Home Screen".
 - **Receipt:** on a sale page (after a sale, or from Sales), tap **Show receipt**. You get one clean receipt with every code, the total, cash and change. Take a normal phone screenshot of it. **Copy receipt as text** and **Done** are below it, out of the screenshot. A voided code shows VOIDED with no digits.
 - **Sales:** history by date and plan. Tap a sale to see its code again. The owner can void a sale (the code is burned and never resold).
 - **Import:** choose the Omada PDF. If the PDF is a picture of the codes, the app reads it with OCR (takes a few seconds). Always check the count in the preview before importing.
+- **Idle sign-out:** after 15 minutes without any tap or key press you get a 30-second "Still there?" warning, then you are signed out. Tap **Stay signed in** to continue. Sales are saved the moment you confirm them, so nothing is lost.
 - **Download CSV backup** (Sales page) from time to time. The free Supabase plan pauses a project after about a week of no use.
 
 ## Commands

@@ -19,3 +19,10 @@ export async function logout() {
   await supabase.auth.signOut();
   redirect('/login');
 }
+
+// Same as logout, but the login page explains why (fixed notice, see LoginPage).
+export async function idleLogout() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect('/login?reason=idle');
+}

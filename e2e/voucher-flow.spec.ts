@@ -195,3 +195,31 @@ test('touch targets are at least 48px on the main screens', async ({ page }) => 
     expect(small, `small targets on ${url}`).toEqual([]);
   }
 });
+
+const IDLE_NOTICE = 'You were signed out because you were idle.';
+
+test('login shows the idle notice only for reason=idle', async ({ page }) => {
+  await page.goto('/login?reason=idle');
+  await expect(page.getByText(IDLE_NOTICE)).toBeVisible();
+  for (const junk of ['<script>alert(1)</script>', 'IDLE', 'idle%20', 'x']) {
+    await page.goto(`/login?reason=${junk}`);
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    await expect(page.getByText(IDLE_NOTICE)).toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText('alert(1)');
+  }
+});
+
+test('idle: warning at 14:30, Stay resets, then 15 min of nothing signs out', async ({ page }) => {
+  needsLogin();
+  await page.clock.install();
+  await login(page);
+  await page.clock.fastForward('14:45');
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Stay signed in' })).toBeFocused();
+  await dialog.getByRole('button', { name: 'Stay signed in' }).click();
+  await expect(dialog).toHaveCount(0);
+  await page.clock.fastForward('16:00'); // far past the limit: the next tick signs out
+  await expect(page).toHaveURL(/\/login\?reason=idle/);
+  await expect(page.getByText(IDLE_NOTICE)).toBeVisible();
+});
