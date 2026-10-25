@@ -1,0 +1,28 @@
+// Pure cart maths for /sell. A cart is planId -> qty; money is integer centavos.
+export const MAX_VOUCHERS = 10;
+const BILLS = [2000, 5000, 10000, 20000, 50000, 100000];
+
+export type Cart = Record<string, number>;
+
+export const cartCount = (cart: Cart) => Object.values(cart).reduce((a, q) => a + q, 0);
+
+export const cartTotal = (cart: Cart, prices: Record<string, number>) =>
+  Object.entries(cart).reduce((a, [id, q]) => a + q * (prices[id] ?? 0), 0);
+
+/** Set one plan's qty, clamped to whole numbers, the stock, and the 10-voucher total. Zero removes it. */
+export function setQty(cart: Cart, planId: string, qty: number, stock: Record<string, number> = {}): Cart {
+  const others = cartCount(cart) - (cart[planId] ?? 0);
+  const max = Math.max(0, Math.min(MAX_VOUCHERS - others, stock[planId] ?? MAX_VOUCHERS));
+  const q = Math.max(0, Math.min(Math.floor(qty) || 0, max));
+  const { [planId]: _old, ...rest } = cart;
+  return q > 0 ? { ...rest, [planId]: q } : rest;
+}
+
+/** Quick "cash received" buttons: the exact total, then common bills above it. */
+export function cashChips(total: number): number[] {
+  if (total <= 0) return [];
+  const next1000 = Math.ceil((total + 1) / 100000) * 100000;
+  return [total, ...BILLS.filter((b) => b > total), next1000].filter((v, i, all) => all.indexOf(v) === i).slice(0, 5);
+}
+
+export const changeFor = (total: number, tendered: number) => tendered - total;
