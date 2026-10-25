@@ -1,6 +1,7 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { recordEvent } from '@/lib/record-event';
 
 export async function login(_prev: { error?: string } | undefined, form: FormData) {
   const email = String(form.get('email') ?? '').trim();
@@ -11,11 +12,13 @@ export async function login(_prev: { error?: string } | undefined, form: FormDat
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: 'Wrong email or password.' };
+  await recordEvent(supabase, 'login');
   redirect('/');
 }
 
 export async function logout() {
   const supabase = await createClient();
+  await recordEvent(supabase, 'logout');
   await supabase.auth.signOut();
   redirect('/login');
 }
@@ -23,6 +26,7 @@ export async function logout() {
 // Same as logout, but the login page explains why (fixed notice, see LoginPage).
 export async function idleLogout() {
   const supabase = await createClient();
+  await recordEvent(supabase, 'idle_signout');
   await supabase.auth.signOut();
   redirect('/login?reason=idle');
 }

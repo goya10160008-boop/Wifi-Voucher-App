@@ -16,6 +16,7 @@ export const ACTION_GROUPS = [
   { key: 'plans', label: 'Plans', actions: ['plan_create', 'plan_update', 'plan_archive', 'plan_restore'] },
   { key: 'settings', label: 'Settings', actions: ['settings_update'] },
   { key: 'staff', label: 'Staff', actions: ['staff_add', 'staff_deactivate', 'staff_reactivate', 'role_change'] },
+  { key: 'access', label: 'Sign-ins', actions: ['login', 'logout', 'idle_signout', 'csv_export'] },
 ] as const;
 
 /** Actions for a filter key; undefined (= no filter) for empty or unknown keys, so junk never reaches the query. */
@@ -86,6 +87,13 @@ export function describeEvent(r: AuditRow): string {
     case 'staff_deactivate': return `${a} deactivated ${str(d.role) ?? 'staff'}${name ? ` ${name}` : ''}`;
     case 'staff_reactivate': return `${a} reactivated ${str(d.role) ?? 'staff'}${name ? ` ${name}` : ''}`;
     case 'role_change': return name ? `${a} changed ${name} from ${String(d.from)} to ${String(d.to)}` : `${a} changed a role`;
+    case 'login': return `${a} signed in`;
+    case 'logout': return `${a} signed out`;
+    case 'idle_signout': return `${a} was signed out after being idle`;
+    case 'csv_export': {
+      const [from, to] = [str(d.from), str(d.to)];
+      return `${a} downloaded the sales backup${from && to ? ` (${from} to ${to})` : ''}`;
+    }
     default: return `${a}: ${r.action}`;
   }
 }

@@ -95,6 +95,7 @@ export type Database = {
         Args: { p_buyer_name?: string; p_buyer_room?: string; p_group_key: string; p_items: Json; p_tendered_centavos: number };
         Returns: Sale[];
       };
+      record_event: { Args: { p_action: string; p_detail?: Json }; Returns: undefined };
       void_sale: { Args: { p_reason: string; p_sale_id: string }; Returns: Sale };
     };
     Enums: { [_ in never]: never };

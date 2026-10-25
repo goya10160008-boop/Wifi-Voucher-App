@@ -36,6 +36,13 @@ describe('describeEvent', () => {
     expect(describeEvent(row('staff_reactivate', { name: 'Maria', role: 'staff' }, 'Owner'))).toBe('Owner reactivated staff Maria');
     expect(describeEvent(row('role_change', { name: 'Maria', from: 'staff', to: 'owner' }, 'Owner'))).toBe('Owner changed Maria from staff to owner');
   });
+  it('session events: sign-in, sign-out, idle, backup download', () => {
+    expect(describeEvent(row('login', {}))).toBe('Maria signed in');
+    expect(describeEvent(row('logout', {}))).toBe('Maria signed out');
+    expect(describeEvent(row('idle_signout', {}))).toBe('Maria was signed out after being idle');
+    expect(describeEvent(row('csv_export', { from: '2026-10-01', to: '2026-10-25' }, 'Owner'))).toBe('Owner downloaded the sales backup (2026-10-01 to 2026-10-25)');
+    expect(describeEvent(row('csv_export', {}, 'Owner'))).toBe('Owner downloaded the sales backup');
+  });
   it('never throws on missing or odd detail, and falls back for unknown actions', () => {
     expect(describeEvent(row('sale', {}))).toBe('Maria sold some vouchers');
     expect(describeEvent(row('import', {}, 'Owner'))).toBe('Owner imported codes');
@@ -61,7 +68,7 @@ describe('action groups', () => {
     expect(actionsFor('staff')).toEqual(['staff_add', 'staff_deactivate', 'staff_reactivate', 'role_change']);
     expect(actionsFor(undefined)).toBeUndefined();
     expect(actionsFor('<script>')).toBeUndefined();
-    expect(ACTION_GROUPS.map((g) => g.key)).toEqual(['sale', 'void', 'import', 'plans', 'settings', 'staff']);
+    expect(ACTION_GROUPS.map((g) => g.key)).toEqual(['sale', 'void', 'import', 'plans', 'settings', 'staff', 'access']);
   });
 });
 

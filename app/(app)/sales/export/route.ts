@@ -1,5 +1,6 @@
 import { requireRole } from '@/lib/auth';
 import { isDate, manilaDayEnd, manilaDayStart } from '@/lib/manila';
+import { recordEvent } from '@/lib/record-event';
 import { loadNames, sellerLabel } from '@/lib/seller';
 
 const BATCH = 1000; // hosted Supabase caps each response at 1000 rows by default
@@ -30,6 +31,7 @@ export async function GET(req: Request) {
     return new Response('Could not build the backup. Please try again.', { status: 500 });
   }
 
+  await recordEvent(supabase, 'csv_export', { from, to });
   const head = ['created_at', 'status', 'code', 'plan', 'price_php', 'guest', 'room', 'void_reason', 'group', 'seq', 'seller'];
   const rows = sales.map((s) => [s.created_at, s.status, s.voucher_code, s.plan_name, s.price_centavos / 100, s.buyer_name, s.buyer_room, s.void_reason, s.group_id, s.seq, sellerLabel(names, s.sold_by)]);
   const csv = '﻿' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\n');
