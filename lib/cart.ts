@@ -26,3 +26,10 @@ export function cashChips(total: number): number[] {
 }
 
 export const changeFor = (total: number, tendered: number) => tendered - total;
+
+/** The cart as display lines, in plan order. Plans no longer in the list are dropped. */
+export function cartLines(cart: Cart, plans: { plan_id: string; plan_name: string; price_centavos: number }[]) {
+  return plans
+    .filter((p) => (cart[p.plan_id] ?? 0) > 0)
+    .map((p) => ({ id: p.plan_id, name: p.plan_name, qty: cart[p.plan_id], unit: p.price_centavos, subtotal: cart[p.plan_id] * p.price_centavos }));
+}

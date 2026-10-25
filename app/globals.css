@@ -176,6 +176,11 @@ textarea.field { padding: 0.75rem 1rem; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
+/* Plans | My cart | Pay tabs on /sell. Same look as .chip; the selected tab uses the same highlight. */
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+.tabs .chip { min-height: 56px; padding: 0 0.5rem; font-size: 17px; }
+.tabs .chip[aria-selected="true"] { background: var(--color-soft); border-color: var(--color-pri); }
+
 /* Quantity stepper on the cart plan rows. */
 .stepper { display: inline-flex; align-items: center; gap: 0.25rem; }
 .stepper button {

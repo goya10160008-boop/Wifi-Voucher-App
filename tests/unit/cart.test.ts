@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_VOUCHERS, cartCount, cartTotal, cashChips, changeFor, setQty } from '@/lib/cart';
+import { MAX_VOUCHERS, cartCount, cartLines, cartTotal, cashChips, changeFor, setQty } from '@/lib/cart';
 
 const prices = { a: 2000, b: 5000 };
 
@@ -30,5 +30,17 @@ describe('cart (planId -> qty)', () => {
   it('change is tendered minus total, negative when short', () => {
     expect(changeFor(6000, 10000)).toBe(4000);
     expect(changeFor(6000, 5000)).toBe(-1000);
+  });
+
+  it('cart lines: one per plan in plan order, with unit price and subtotal; unknown plans are dropped', () => {
+    const plans = [
+      { plan_id: 'a', plan_name: '1HRS', price_centavos: 500 },
+      { plan_id: 'b', plan_name: '3HRS', price_centavos: 1000 },
+    ];
+    expect(cartLines({ b: 2, a: 1, gone: 3 }, plans)).toEqual([
+      { id: 'a', name: '1HRS', qty: 1, unit: 500, subtotal: 500 },
+      { id: 'b', name: '3HRS', qty: 2, unit: 1000, subtotal: 2000 },
+    ]);
+    expect(cartLines({}, plans)).toEqual([]);
   });
 });

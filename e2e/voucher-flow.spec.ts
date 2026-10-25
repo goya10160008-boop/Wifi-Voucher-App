@@ -120,6 +120,8 @@ test('create plan, import, sell, copy, void, totals', async ({ page, context }) 
   await expect(page.getByRole('listitem').filter({ hasText: plan })).toContainText('2 left');
   await page.getByRole('button', { name: 'Add one ' + plan }).click();
   await expect(page.getByText('1 voucher · ₱20.00')).toBeVisible();
+  await page.getByRole('tab', { name: /My cart/ }).click();
+  await page.getByRole('button', { name: 'Go to payment' }).click();
   await page.getByRole('button', { name: '₱50.00' }).click();
   await expect(page.getByText('Change: ₱30.00')).toBeVisible();
   await page.getByRole('button', { name: 'Confirm sale' }).click();
@@ -159,6 +161,8 @@ test('sell 3 vouchers in one sale: group page, copy all, void one code', async (
   for (let i = 0; i < 3; i++) await add.click();
   await expect(add).toBeDisabled(); // only 3 codes in stock
   await expect(page.getByText('3 vouchers · ₱60.00')).toBeVisible();
+  await page.getByRole('tab', { name: /My cart/ }).click();
+  await page.getByRole('button', { name: 'Go to payment' }).click();
   await page.getByRole('button', { name: '₱100.00' }).click();
   await expect(page.getByText('Change: ₱40.00')).toBeVisible();
   await page.getByRole('button', { name: 'Confirm sale' }).click();
@@ -197,6 +201,8 @@ test('receipt: all codes on one screenshot-ready receipt, nav hidden, copy as te
   await page.goto('/sell');
   const add = page.getByRole('button', { name: 'Add one ' + plan });
   for (let i = 0; i < 3; i++) await add.click();
+  await page.getByRole('tab', { name: /My cart/ }).click();
+  await page.getByRole('button', { name: 'Go to payment' }).click();
   await page.getByRole('button', { name: '₱100.00' }).click();
   await page.getByRole('button', { name: 'Confirm sale' }).click();
   await expect(page).toHaveURL(/\/sales\/group\/[0-9a-f-]{36}\?new=1/);
