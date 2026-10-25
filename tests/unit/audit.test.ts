@@ -36,6 +36,19 @@ describe('describeEvent', () => {
     expect(describeEvent(row('staff_reactivate', { name: 'Maria', role: 'staff' }, 'Owner'))).toBe('Owner reactivated staff Maria');
     expect(describeEvent(row('role_change', { name: 'Maria', from: 'staff', to: 'owner' }, 'Owner'))).toBe('Owner changed Maria from staff to owner');
   });
+  it('void of a whole receipt, and the restock entry', () => {
+    const codes = ['***094', '***095', '***096'];
+    expect(describeEvent(row('void', { count: 3, codes, reason: 'Wrong plan sold', reason_code: 'wrong_plan', returned: false }, 'Owner')))
+      .toBe('Owner voided a receipt (3 codes): Wrong plan sold');
+    expect(describeEvent(row('void', { count: 1, codes: ['***094'], reason: 'Owner Test', reason_code: 'owner_test', returned: true }, 'Owner')))
+      .toBe('Owner voided a receipt (1 code): Owner Test, the code went back on sale');
+    expect(describeEvent(row('void', { count: 3, codes, reason: 'Owner Test', returned: true }, 'Owner')))
+      .toBe('Owner voided a receipt (3 codes): Owner Test, the codes went back on sale');
+    expect(describeEvent(row('restock', { count: 3, plans: [{ plan: '3HRS WIFI', qty: 3 }] }, 'Owner'))).toBe('Owner returned 3 codes to stock');
+    expect(describeEvent(row('restock', {}, 'Owner'))).toBe('Owner returned codes to stock');
+    expect(eventSub(row('void', { count: 3, codes }))).toBe('***094, ***095, ***096');
+    expect(eventSub(row('restock', { count: 3, plans: [{ plan: '3HRS WIFI', qty: 3 }] }))).toBe('3 × 3HRS WIFI');
+  });
   it('session events: sign-in, sign-out, idle, backup download', () => {
     expect(describeEvent(row('login', {}))).toBe('Maria signed in');
     expect(describeEvent(row('logout', {}))).toBe('Maria signed out');
@@ -65,6 +78,7 @@ describe('action groups', () => {
   it('maps a group key to its actions, and unknown or empty to everything', () => {
     expect(actionsFor('plans')).toEqual(['plan_create', 'plan_update', 'plan_archive', 'plan_restore']);
     expect(actionsFor('sale')).toEqual(['sale']);
+    expect(actionsFor('void')).toEqual(['void', 'restock']);
     expect(actionsFor('staff')).toEqual(['staff_add', 'staff_deactivate', 'staff_reactivate', 'role_change']);
     expect(actionsFor(undefined)).toBeUndefined();
     expect(actionsFor('<script>')).toBeUndefined();

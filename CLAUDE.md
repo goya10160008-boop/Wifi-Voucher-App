@@ -5,21 +5,21 @@ Codes are generated in TP-Link Omada and exported as PDF. The app imports the co
 unused code per plan atomically, and records sales. Guests never log in. Cash only for now; GCash/Maya later
 (separate `payments` table already in the schema). Roles: `owner`, `staff` (limited, later).
 
-**Status:** live on Cloudflare (https://ab-wifi-vouchers.mobile-voucher-app.workers.dev), `main` = deployed code (stage 1-3 and the Sell step-track page deployed 2026-10-25). Built: auth, plans, import (OCR), cart sales, receipt, Mint design, idle sign-out, Home menu grid, Sales date fixes. Migrations 0001+0002 applied to the remote Supabase project. **Stage 1 (who sold, staff wording, audit log + `/logs`) is on branch `feat/stage1-log`; `supabase/migrations/0003_hardening_and_audit.sql` and `0004_record_event.sql` (stage 2 events) and `0005_user_pins.sql` (stage 3 staff PINs) were applied to the remote project on 2026-10-25 (SQL editor; decision 78), then merge and deploy; `/logs` says the log is not switched on until then).** Staff PIN login is built; the spike passed (decision 79); still needs the `SUPABASE_SECRET_KEY` Worker secret and a check on the deployed Worker; owner PIN (0006) not built. Next stages (see `docs/superpowers/plans/2026-10-25-staff-accounts-plan.md`): login/idle events, then staff PIN login, then owner PIN. Build notes: `docs/decisions.md`.
+**Status:** live on Cloudflare (https://ab-wifi-vouchers.mobile-voucher-app.workers.dev), `main` = deployed code (stage 1-3, the Sell step-track page and the dense layout deployed 2026-10-25). **Local, not deployed: receipt as the sale screen, no QR, void a whole receipt (migration `0006_void_receipt.sql`, NOT applied remotely; apply it BEFORE deploying this code or the void buttons fail).**. Built: auth, plans, import (OCR), cart sales, receipt, Mint design, idle sign-out, Home menu grid, Sales date fixes. Migrations 0001+0002 applied to the remote Supabase project. **Stage 1 (who sold, staff wording, audit log + `/logs`) is on branch `feat/stage1-log`; `supabase/migrations/0003_hardening_and_audit.sql` and `0004_record_event.sql` (stage 2 events) and `0005_user_pins.sql` (stage 3 staff PINs) were applied to the remote project on 2026-10-25 (SQL editor; decision 78), then merge and deploy; `/logs` says the log is not switched on until then).** Staff PIN login is built; the spike passed (decision 79); still needs the `SUPABASE_SECRET_KEY` Worker secret and a check on the deployed Worker; owner PIN (0006) not built. Next stages (see `docs/superpowers/plans/2026-10-25-staff-accounts-plan.md`): login/idle events, then staff PIN login, then owner PIN. Build notes: `docs/decisions.md`.
 Full design: `docs/superpowers/specs/2026-10-25-voucher-manager-design.md`. Plan: `docs/superpowers/plans/2026-10-25-voucher-manager-plan.md`.
 
 ## Stack
 - Next.js 16.4 (App Router) + TypeScript **5.9.3 pinned** (not TS 7) + Tailwind 4 (CSS-first, no tailwind.config)
 - Supabase: Postgres + Auth + RLS (`@supabase/ssr`, publishable key, `getClaims()`)
 - Hosting: Cloudflare Workers via `@opennextjs/cloudflare` (Node runtime; NOT Pages / next-on-pages)
-- PDF text: `pdfjs-dist`, browser only; Omada PDFs have no text layer, so fallback is `tesseract.js` OCR (digits only, assets self-hosted via `scripts/copy-ocr.mjs`). QR: `qrcode.react`
+- PDF text: `pdfjs-dist`, browser only; Omada PDFs have no text layer, so fallback is `tesseract.js` OCR (digits only, assets self-hosted via `scripts/copy-ocr.mjs`).
 - Tests: vitest (unit + DB concurrency), Playwright (E2E)
 - Pin all dependency versions exactly; commit the lockfile.
 
 ## Folder structure (target)
 ```
 app/(auth)/login        app/(app)/{page,sell,sales,plans,import,settings}
-app/manifest.ts         components/VoucherCode.tsx   app/(app)/logs (owner)
+app/manifest.ts         components/Receipt.tsx   app/(app)/logs (owner)
 lib/{supabase,auth,money,manila,parse-codes,pdf-text,rpc-errors}
 proxy.ts                supabase/migrations/   supabase/tests/
 tests/unit/             e2e/                   samples/   docs/
@@ -40,7 +40,7 @@ tests/unit/             e2e/                   samples/   docs/
 - Timestamps are `timestamptz` (UTC). Day/month boundaries are Asia/Manila (`+08:00`, no DST), computed in SQL or `lib/manila.ts`.
 - All writes to vouchers/sales/payments go through `SECURITY DEFINER` RPCs (`search_path=''`, role check inside). No direct write grants.
 - Every Server Action: `requireRole()`, validate inputs, call one RPC/query. `proxy.ts` only refreshes the session; it is not the security gate.
-- Void = status change, never delete. Voided codes are `burned`, never resold.
+- Void = status change, never delete. Voided codes are `burned`, never resold. **One exception:** `void_receipt` with the reason `owner_test` puts the codes back on sale, only for the owner's own sale, within 60 minutes, all codes still `sold` (migration 0006; decision 94). The reason list is fixed (`lib/void-reasons.ts`).
 - Parsing PDFs happens in the browser; the server only receives `string[]`.
 - TDD: failing test first. Small commits, one per task. English UI. Big touch targets (min 48px), usable one-handed.
 - Agent status reports may be caveman style. Code, docs, UI text and messages to the owner are normal prose.

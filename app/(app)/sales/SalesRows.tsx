@@ -21,7 +21,7 @@ export function SalesRows({ entries, now, by }: { entries: SaleRow[][]; now: Dat
     const voided = s.status === 'voided';
     return (
       <li key={s.id}>
-        <Link href={`/sales/${s.id}`} className={`row-dense ${voided ? 'text-mute line-through' : ''}`} style={nested ? { paddingLeft: 28 } : undefined}>
+        <Link href={s.group_id ? `/sales/group/${s.group_id}` : `/sales/${s.id}`} className={`row-dense ${voided ? 'text-mute line-through' : ''}`} style={nested ? { paddingLeft: 28 } : undefined}>
           <b className="font-mono">{s.voucher_code}</b>
           <span className="grow ell">{s.plan_name}{voided ? ' (voided)' : ''}{s.buyer_room ? ` · ${s.buyer_room}` : ''}{by(s.sold_by)}</span>
           <span className="text-mute">{clockTime(s.created_at)}</span>

@@ -9,6 +9,10 @@ const MESSAGES: Record<string, string> = {
   TOO_MANY_CODES: 'Too many codes at once (max 5000).',
   CART_TOO_BIG: 'You can sell at most 10 vouchers at a time.',
   CART_INVALID: 'Something is wrong with the cart. Check the quantities and try again.',
+  BAD_REASON: 'Choose a reason.',
+  STAFF_SALE: 'Owner Test is only for sales you made yourself. Nothing was changed.',
+  TOO_OLD: 'Owner Test only works within 60 minutes of the sale. Nothing was changed.',
+  NOT_SOLD: 'One of these codes is no longer marked as sold, so nothing was changed.',
 };
 
 // sell_cart raises OUT_OF_STOCK with DETAIL "<plan name>|<codes left>".

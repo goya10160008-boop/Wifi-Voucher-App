@@ -18,4 +18,10 @@ describe('rpcMessage', () => {
     expect(rpcMessage({ message: 'CART_TOO_BIG' })).toMatch(/10/);
     expect(rpcMessage({ message: 'CART_INVALID' })).toMatch(/cart/i);
   });
+  it('maps the void receipt codes to plain sentences', () => {
+    expect(rpcMessage({ message: 'STAFF_SALE' })).toBe('Owner Test is only for sales you made yourself. Nothing was changed.');
+    expect(rpcMessage({ message: 'TOO_OLD' })).toBe('Owner Test only works within 60 minutes of the sale. Nothing was changed.');
+    expect(rpcMessage({ message: 'NOT_SOLD' })).toBe('One of these codes is no longer marked as sold, so nothing was changed.');
+    expect(rpcMessage({ message: 'BAD_REASON' })).toBe('Choose a reason.');
+  });
 });

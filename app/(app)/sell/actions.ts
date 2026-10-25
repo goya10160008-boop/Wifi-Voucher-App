@@ -24,7 +24,7 @@ export async function sell(input: {
     return { error: 'Name or room is too long.' };
   }
 
-  const { data, error } = await supabase.rpc('sell_cart', {
+  const { error } = await supabase.rpc('sell_cart', {
     p_group_key: key,
     p_items: items.map((i) => ({ plan_id: i.planId, qty: i.qty })),
     p_tendered_centavos: tenderedCentavos,
@@ -38,6 +38,6 @@ export async function sell(input: {
   }
   revalidatePath('/');
   revalidatePath('/sales');
-  // One code goes straight to its sale page; several go to the group page showing every code.
-  redirect(data.length === 1 ? `/sales/${data[0].id}?new=1` : `/sales/group/${key}?new=1`);
+  // Every sale, one code or several, opens on its receipt.
+  redirect(`/sales/group/${key}?new=1`);
 }

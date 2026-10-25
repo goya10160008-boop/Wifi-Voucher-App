@@ -7,6 +7,7 @@ type Sale = {
   sold_by: string; status: string; void_reason: string | null; voided_at: string | null;
   voided_by: string | null; voucher_code: string; voucher_id: number;
   group_id: string | null; seq: number | null;
+  void_reason_code: string | null; void_batch: string | null;
 };
 
 export type Database = {
@@ -104,6 +105,7 @@ export type Database = {
         Returns: { user_id: string; display_name: string | null; active: boolean; username: string | null; set_at: string | null; locked: boolean; hard_locked: boolean }[];
       };
       record_event: { Args: { p_action: string; p_detail?: Json }; Returns: undefined };
+      void_receipt: { Args: { p_ref: string; p_reason_code: string; p_note?: string | null }; Returns: Sale[] };
       void_sale: { Args: { p_reason: string; p_sale_id: string }; Returns: Sale };
     };
     Enums: { [_ in never]: never };

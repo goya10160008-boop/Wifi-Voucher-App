@@ -264,7 +264,7 @@ textarea.field { padding: 0.75rem 1rem; }
 .receipt-plan-head small { font-weight: 500; color: var(--color-mute); }
 .receipt-plan-head span:last-child { font-size: 14px; font-weight: 600; white-space: nowrap; }
 .receipt-codes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.receipt-codes li { display: flex; align-items: baseline; justify-content: center; gap: 0.75rem; }
+.receipt-codes li { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem 0.75rem; }
 .receipt-seq { min-width: 2.4ch; text-align: right; font-size: 15px; font-weight: 600; color: var(--color-mute); }
 .receipt-code { font-family: var(--font-mono); font-size: 38px; line-height: 1.1; font-weight: 500; letter-spacing: 0.1em; }
 .receipt-voided {
@@ -317,3 +317,11 @@ textarea.field { padding: 0.75rem 1rem; }
 .drow:last-child > summary { border-bottom: 0; }
 .drow[open] > summary { border-bottom: 1px solid var(--color-line); }
 .drow-body { padding: 12px 14px; }
+
+/* Receipt screen: a Copy button beside each code, and the action bar that stays above the bottom menu. */
+.receipt-bar .btn { padding: 0 0.5rem; white-space: nowrap; }
+.receipt-copy { min-height: 48px; min-width: 72px; padding: 0 0.75rem; }
+.receipt-bar {
+  position: sticky; bottom: calc(var(--navb) + var(--navh) + 20px); z-index: 5; padding: 6px 8px 8px;
+  background: var(--color-canvas); border-radius: var(--radius-card);
+}

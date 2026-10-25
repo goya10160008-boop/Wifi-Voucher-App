@@ -126,15 +126,24 @@ test('create plan, import, sell, copy, void, totals', async ({ page, context }) 
   await expect(page.getByRole('status').filter({ hasText: 'Change to give back' })).toContainText('₱30.00');
   await page.getByRole('button', { name: 'Confirm sale' }).click();
 
-  await expect(page).toHaveURL(/\/sales\/[0-9a-f-]{36}\?new=1/);
-  await expect(page.getByText(codes[0], { exact: true })).toBeVisible(); // FIFO: oldest first
-  await page.getByRole('button', { name: 'Copy code' }).click();
-  await expect(page.getByText('Copied')).toBeVisible();
+  // Every sale opens on its receipt, with the "Sale complete" banner and no QR.
+  await expect(page).toHaveURL(/\/sales\/group\/[0-9a-f-]{36}\?new=1/);
+  await expect(page.getByRole('status').filter({ hasText: 'Sale complete' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Receipt' }).getByText(codes[0], { exact: true })).toBeVisible(); // FIFO: oldest first
+  await expect(page.locator('svg[role="img"], canvas')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Copy code', exact: true }).click();
+  await expect(page.getByText('Code copied')).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(codes[0]);
 
-  await page.getByPlaceholder('Reason').fill('e2e test');
-  await page.getByRole('button', { name: 'Void sale' }).click();
-  await expect(page.getByText(/VOIDED: e2e test/)).toBeVisible();
+  // Owner Test on the owner's own fresh sale: the code goes back on sale.
+  await page.getByRole('button', { name: 'Void this receipt' }).click();
+  await page.getByLabel('Reason', { exact: true }).selectOption('owner_test');
+  await expect(page.getByRole('button', { name: /Void and return 1 code to stock/ })).toBeDisabled(); // needs TEST typed
+  await page.getByLabel('Type TEST to confirm').fill('TEST');
+  await page.getByRole('button', { name: /Void and return 1 code to stock/ }).click();
+  await expect(page.getByText(/This whole receipt is voided: Owner Test\. The code was returned to stock\./)).toBeVisible();
+  await page.goto('/sell');
+  await expect(page.getByRole('listitem').filter({ hasText: plan })).toContainText('2 left'); // back on sale
 
   await page.goto('/sales');
   await expect(page.getByText(codes[0]).first()).toBeVisible();
@@ -172,15 +181,25 @@ test('sell 3 vouchers in one sale: group page, copy all, void one code', async (
   await page.getByRole('button', { name: 'Copy all 3 codes' }).click();
   await expect(page.getByText('Copied 3 codes')).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(codes.join('\n'));
-  await expect(page.getByText('Cash / change')).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Receipt' })).toContainText('Change');
+  await page.getByRole('button', { name: 'Copy all 3', exact: true }).click();
+  await expect(page.getByText('Copied 3 codes')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Details or void this code' }).nth(1).click();
-  await page.getByPlaceholder('Reason').fill('e2e test');
-  await page.getByRole('button', { name: 'Void sale' }).click();
-  await expect(page.getByText(/VOIDED: e2e test/)).toBeVisible();
-  await page.getByRole('link', { name: 'See all codes sold together' }).click();
-  await expect(page.getByText(/VOIDED: e2e test/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Copy all 2 codes' })).toBeVisible(); // only live codes are copied
+  // Void just one code (a code that did not work); the other two stay valid.
+  await page.getByRole('button', { name: 'Void this receipt' }).click();
+  await page.getByText('Void just one code').click();
+  await page.getByLabel('Which code').selectOption({ label: codes[1] });
+  await page.getByLabel('Reason for this code').selectOption('code_failed');
+  await page.getByRole('button', { name: 'Void this code' }).click();
+  await expect(page.getByText(/1 of 3 codes voided: Code did not work/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy all 2', exact: true })).toBeVisible(); // only live codes are copied
+
+  // Void the rest of the receipt in one go.
+  await page.getByRole('button', { name: 'Void this receipt' }).click();
+  await page.getByLabel('Reason', { exact: true }).selectOption('sold_twice');
+  await page.getByRole('button', { name: 'Void 2 codes' }).click();
+  await expect(page.getByText(/This whole receipt is voided/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Void this receipt' })).toHaveCount(0);
 });
 
 test('receipt: all codes on one screenshot-ready receipt, nav hidden, copy as text, done', async ({ page, context }) => {
@@ -207,7 +226,7 @@ test('receipt: all codes on one screenshot-ready receipt, nav hidden, copy as te
   await page.getByRole('button', { name: 'Confirm sale' }).click();
   await expect(page).toHaveURL(/\/sales\/group\/[0-9a-f-]{36}\?new=1/);
 
-  await page.getByRole('link', { name: 'Show receipt' }).click();
+  await page.getByRole('link', { name: 'Clean view for a screenshot' }).click();
   await expect(page).toHaveURL(/receipt=1/);
   const paper = page.getByRole('article', { name: 'Receipt' });
   await expect(paper).toContainText('A&B Boarding House WiFi');

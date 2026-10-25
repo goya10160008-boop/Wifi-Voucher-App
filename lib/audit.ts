@@ -11,7 +11,7 @@ export type AuditRow = {
 
 export const ACTION_GROUPS = [
   { key: 'sale', label: 'Sales', actions: ['sale'] },
-  { key: 'void', label: 'Voids', actions: ['void'] },
+  { key: 'void', label: 'Voids', actions: ['void', 'restock'] },
   { key: 'import', label: 'Imports', actions: ['import'] },
   { key: 'plans', label: 'Plans', actions: ['plan_create', 'plan_update', 'plan_archive', 'plan_restore'] },
   { key: 'settings', label: 'Settings', actions: ['settings_update'] },
@@ -59,6 +59,12 @@ export function describeEvent(r: AuditRow): string {
       return `${a} sold ${plural(count, 'voucher', 'vouchers')}${total === undefined ? '' : ` · ${formatPeso(total)}`}`;
     }
     case 'void': {
+      if (Array.isArray(d.codes)) { // a whole receipt (void_receipt, 0006)
+        const n = num(d.count) ?? d.codes.length;
+        const reason = str(d.reason);
+        const back = d.returned === true ? `, ${n === 1 ? 'the code' : 'the codes'} went back on sale` : '';
+        return `${a} voided a receipt (${plural(n, 'code', 'codes')})${reason ? `: ${reason}` : ''}${back}`;
+      }
       const code = str(d.code);
       const reason = str(d.reason);
       return `${a} voided ${code ? `sale ${code}` : 'a sale'}${reason ? `: ${reason}` : ''}`;
@@ -87,6 +93,10 @@ export function describeEvent(r: AuditRow): string {
     case 'staff_deactivate': return `${a} deactivated ${str(d.role) ?? 'staff'}${name ? ` ${name}` : ''}`;
     case 'staff_reactivate': return `${a} reactivated ${str(d.role) ?? 'staff'}${name ? ` ${name}` : ''}`;
     case 'role_change': return name ? `${a} changed ${name} from ${String(d.from)} to ${String(d.to)}` : `${a} changed a role`;
+    case 'restock': {
+      const n = num(d.count);
+      return n === undefined ? `${a} returned codes to stock` : `${a} returned ${plural(n, 'code', 'codes')} to stock`;
+    }
     case 'login': return `${a} signed in`;
     case 'logout': return `${a} signed out`;
     case 'idle_signout': return `${a} was signed out after being idle`;
@@ -102,6 +112,10 @@ export function describeEvent(r: AuditRow): string {
 export function eventSub(r: AuditRow): string | null {
   const d = obj(r.detail);
   if (r.action === 'sale' && Array.isArray(d.plans) && d.plans.length) {
+    return d.plans.map((p) => `${num(obj(p).qty) ?? '?'} × ${str(obj(p).plan) ?? 'plan'}`).join(', ');
+  }
+  if (r.action === 'void' && Array.isArray(d.codes)) return d.codes.filter((c) => typeof c === 'string').join(', ') || null;
+  if (r.action === 'restock' && Array.isArray(d.plans) && d.plans.length) {
     return d.plans.map((p) => `${num(obj(p).qty) ?? '?'} × ${str(obj(p).plan) ?? 'plan'}`).join(', ');
   }
   if (r.action === 'void') {
