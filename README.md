@@ -23,7 +23,7 @@ Open the site in Chrome (Android) or Safari (iPhone), then "Add to Home Screen".
 ## Everyday use
 
 - **Home:** today's and this month's sales, a Sell button per plan with codes left, and a warning when stock is low.
-- **Sell:** pick plan, tap the cash received, see the change, Confirm. The code appears large with Copy and a QR.
+- **Sell:** use − and + on each plan for how many vouchers (up to 10 in one sale, mixed plans allowed), tap the cash received, see the change, Confirm. One voucher shows its code large with Copy and a QR. Several show every code with its own Copy, a Copy all button and the cash/change summary.
 - **Sales:** history by date and plan. Tap a sale to see its code again. The owner can void a sale (the code is burned and never resold).
 - **Import:** choose the Omada PDF. If the PDF is a picture of the codes, the app reads it with OCR (takes a few seconds). Always check the count in the preview before importing.
 - **Download CSV backup** (Sales page) from time to time. The free Supabase plan pauses a project after about a week of no use.

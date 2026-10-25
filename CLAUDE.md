@@ -5,7 +5,7 @@ Codes are generated in TP-Link Omada and exported as PDF. The app imports the co
 unused code per plan atomically, and records sales. Guests never log in. Cash only for now; GCash/Maya later
 (separate `payments` table already in the schema). Roles: `owner`, `staff` (limited, later).
 
-**Status:** all features built on branch `feat/app` (auth, plans, import w/ OCR, sell, sales/void/CSV, dashboard, settings, PWA, OpenNext config). DB migration applied to the remote Supabase project. Mint design + CSS animations applied to every screen. Not deployed. Waiting on: owner login + profile row (see README), parallel-sale test, final review. Build notes: `docs/decisions.md`.
+**Status:** all features built on branch `feat/app` (auth, plans, import w/ OCR, sell, sales/void/CSV, dashboard, settings, PWA, OpenNext config). DB migration applied to the remote Supabase project. Mint design + CSS animations applied to every screen. Multi-voucher cart sales built (migration `0002_sell_cart.sql` NOT yet applied to the remote project; the new Sell page needs it). Not deployed. Waiting on: owner login + profile row (see README), parallel-sale test, final review. Build notes: `docs/decisions.md`.
 Full design: `docs/superpowers/specs/2026-10-25-voucher-manager-design.md`. Plan: `docs/superpowers/plans/2026-10-25-voucher-manager-plan.md`.
 
 ## Stack
