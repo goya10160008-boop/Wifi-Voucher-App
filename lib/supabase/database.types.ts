@@ -13,6 +13,16 @@ export type Database = {
   __InternalSupabase: { PostgrestVersion: '14.18' };
   public: {
     Tables: {
+      // Written only by database triggers (0003); the owner can read it, nobody can write it.
+      audit_log: {
+        Row: {
+          id: number; at: string; actor: string | null; actor_name: string | null; action: string;
+          target_type: string | null; target_id: string | null; detail: Json;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       payments: {
         Row: {
           amount_centavos: number; created_at: string; id: string; method: string; provider: string | null;
