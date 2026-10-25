@@ -74,8 +74,9 @@ test('create plan, import, sell, copy, void, totals', async ({ page, context }) 
   await expect(page.getByText('Imported 2. Already had 0. Invalid 0.')).toBeVisible();
 
   await page.goto('/sell');
-  await page.getByRole('radio', { name: new RegExp(plan) }).click();
-  await expect(page.getByRole('radio', { name: new RegExp(plan) })).toContainText('2 left');
+  await expect(page.getByRole('listitem').filter({ hasText: plan })).toContainText('2 left');
+  await page.getByRole('button', { name: 'Add one ' + plan }).click();
+  await expect(page.getByText('1 voucher · ₱20.00')).toBeVisible();
   await page.getByRole('button', { name: '₱50.00' }).click();
   await expect(page.getByText('Change: ₱30.00')).toBeVisible();
   await page.getByRole('button', { name: 'Confirm sale' }).click();
@@ -93,6 +94,46 @@ test('create plan, import, sell, copy, void, totals', async ({ page, context }) 
   await page.goto('/sales');
   await expect(page.getByText(codes[0]).first()).toBeVisible();
   await expect(page.getByText(/Total: ₱0\.00/)).toBeVisible(); // the only sale was voided, so excluded
+});
+
+test('sell 3 vouchers in one sale: group page, copy all, void one code', async ({ page, context }) => {
+  needsLogin();
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await login(page);
+  const plan = `E2E multi ${run}`;
+  await createPlan(page, plan);
+  const codes = [`${run}4`, `${run}5`, `${run}6`].map((c) => c.padStart(8, '0'));
+  await page.goto('/import');
+  await page.getByText('Or paste codes / CSV').click();
+  await page.getByLabel('Pasted codes').fill(codes.join('\n'));
+  await page.getByRole('button', { name: 'Read codes' }).click();
+  await page.getByLabel('Plan', { exact: true }).selectOption({ label: plan });
+  await page.getByRole('button', { name: 'Import 3 codes' }).click();
+  await expect(page.getByText('Imported 3.')).toBeVisible();
+
+  await page.goto('/sell');
+  const add = page.getByRole('button', { name: 'Add one ' + plan });
+  for (let i = 0; i < 3; i++) await add.click();
+  await expect(add).toBeDisabled(); // only 3 codes in stock
+  await expect(page.getByText('3 vouchers · ₱60.00')).toBeVisible();
+  await page.getByRole('button', { name: '₱100.00' }).click();
+  await expect(page.getByText('Change: ₱40.00')).toBeVisible();
+  await page.getByRole('button', { name: 'Confirm sale' }).click();
+
+  await expect(page).toHaveURL(/\/sales\/group\/[0-9a-f-]{36}\?new=1/);
+  for (const c of codes) await expect(page.getByText(c, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Copy all 3 codes' }).click();
+  await expect(page.getByText('Copied 3 codes')).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(codes.join('\n'));
+  await expect(page.getByText('Cash / change')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Details or void this code' }).nth(1).click();
+  await page.getByPlaceholder('Reason').fill('e2e test');
+  await page.getByRole('button', { name: 'Void sale' }).click();
+  await expect(page.getByText(/VOIDED: e2e test/)).toBeVisible();
+  await page.getByRole('link', { name: 'See all codes sold together' }).click();
+  await expect(page.getByText(/VOIDED: e2e test/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy all 2 codes' })).toBeVisible(); // only live codes are copied
 });
 
 test('touch targets are at least 48px on the main screens', async ({ page }) => {
