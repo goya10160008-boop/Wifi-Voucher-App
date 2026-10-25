@@ -22,8 +22,8 @@ export async function GET(req: Request) {
     if (data.length < BATCH) break;
   }
 
-  const head = ['created_at', 'status', 'code', 'plan', 'price_php', 'guest', 'room', 'void_reason'];
-  const rows = sales.map((s) => [s.created_at, s.status, s.voucher_code, s.plan_name, s.price_centavos / 100, s.buyer_name, s.buyer_room, s.void_reason]);
+  const head = ['created_at', 'status', 'code', 'plan', 'price_php', 'guest', 'room', 'void_reason', 'group', 'seq'];
+  const rows = sales.map((s) => [s.created_at, s.status, s.voucher_code, s.plan_name, s.price_centavos / 100, s.buyer_name, s.buyer_room, s.void_reason, s.group_id, s.seq]);
   const csv = '﻿' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\n');
   return new Response(csv, {
     headers: {

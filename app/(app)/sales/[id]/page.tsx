@@ -32,6 +32,7 @@ export default async function SalePage({ params, searchParams }: {
         <dt className="text-mute">Room</dt><dd>{sale.buyer_room || '—'}</dd>
         <dt className="text-mute">Sold</dt><dd>{when}</dd>
       </dl>
+      {sale.group_id && <Link href={`/sales/group/${sale.group_id}`} className="btn btn-ghost">See all codes sold together</Link>}
       {role === 'owner' && !voided && <VoidForm id={sale.id} />}
       <Link href="/sell" className="btn btn-ghost">New sale</Link>
     </main>

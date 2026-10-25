@@ -30,7 +30,20 @@ export default async function SalesPage({ searchParams }: {
   // Show a real error, never a quiet "₱0.00".
   if (e1 || e2 || e3 || e4) throw new Error('Could not load sales. Please try again.');
 
-  const grand = (monthly ?? []).reduce((a, t) => a + Number(t.total_centavos), 0);
+  // Rows of one cart sit together: keep first-seen order, gather the rest of a group under it.
+  const entries: NonNullable<typeof sales>[] = [];
+  const seen = new Map<string, NonNullable<typeof sales>>();
+  for (const s of sales ?? []) {
+    const g = s.group_id && seen.get(s.group_id);
+    if (g) g.push(s);
+    else {
+      const e = [s];
+      entries.push(e);
+      if (s.group_id) seen.set(s.group_id, e);
+    }
+  }
+
+  const grand =(monthly ?? []).reduce((a, t) => a + Number(t.total_centavos), 0);
   const fmt = new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' });
   const qs = (n: number) => `?${new URLSearchParams({ from, to, grain, ...(plan ? { plan } : {}), page: String(n) })}`;
 
@@ -62,15 +75,26 @@ export default async function SalesPage({ searchParams }: {
       </section>
 
       <ul className="flex flex-col gap-2">
-        {sales?.map((s) => (
-          <li key={s.id}>
+        {entries.map((rows) => {
+          const row = (s: (typeof rows)[number]) => (
             <Link href={`/sales/${s.id}`} className={`row-link ${s.status === 'voided' ? 'text-mute line-through' : ''}`}>
               <span><b className="font-mono">{s.voucher_code}</b> · {s.plan_name}{s.status === 'voided' ? ' (voided)' : ''}<br /><small className="text-mute">{fmt.format(new Date(s.created_at))}{s.buyer_room ? ` · ${s.buyer_room}` : ''}</small></span>
               <span>{formatPeso(s.price_centavos)}</span>
             </Link>
-          </li>
-        ))}
-        {!sales?.length && <li className="text-mute">No sales in this period.</li>}
+          );
+          if (rows.length === 1) return <li key={rows[0].id}>{row(rows[0])}</li>;
+          const live = rows.filter((s) => s.status === 'completed');
+          return (
+            <li key={rows[0].group_id} className="card flex flex-col gap-2 p-3">
+              <Link href={`/sales/group/${rows[0].group_id}`} className="flex min-h-12 items-center justify-between font-semibold">
+                <span>{rows.length} codes · {formatPeso(live.reduce((a, s) => a + s.price_centavos, 0))}{live.length < rows.length ? ` (${rows.length - live.length} voided)` : ''}</span>
+                <span className="text-pri">Open →</span>
+              </Link>
+              <ul className="flex flex-col gap-2">{rows.map((s) => <li key={s.id}>{row(s)}</li>)}</ul>
+            </li>
+          );
+        })}
+        {!entries.length && <li className="text-mute">No sales in this period.</li>}
       </ul>
 
       <div className="flex justify-between">
