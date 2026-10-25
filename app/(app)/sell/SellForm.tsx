@@ -124,7 +124,7 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
           <>
             <ul className="flex flex-col gap-3" aria-label="Plans">
               {plans.map((p) => (
-                <li key={p.plan_id} data-on={(cart[p.plan_id] ?? 0) > 0} className="plan-row card flex items-center justify-between gap-3">
+                <li key={p.plan_id} data-on={(cart[p.plan_id] ?? 0) > 0} className="plan-row card row1 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold">{p.plan_name}</p>
                     <p className="text-sm text-mute">
@@ -150,7 +150,7 @@ export function SellForm({ plans, initialPlan }: { plans: Plan[]; initialPlan?: 
           <>
             <ul className="flex flex-col gap-3" aria-label="Cart">
               {lines.map((l) => (
-                <li key={l.id} className="card flex items-center justify-between gap-3">
+                <li key={l.id} className="card row1 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold">{l.name}</p>
                     <p className="text-sm text-mute">{l.qty} × {formatPeso(l.unit)} = {formatPeso(l.subtotal)}</p>

@@ -26,9 +26,9 @@ export default async function Home() {
 
   return (
     <main className="flex flex-col gap-5">
-      <div>
-        <p className="text-mute">Good day{name ? `, ${name}` : ''}</p>
-        <h1 className="h1">A&amp;B WiFi</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="h1 shrink-0">A&amp;B WiFi</h1>
+        <p className="ell text-mute">Good day{name ? `, ${name}` : ''}</p>
       </div>
       {low.length > 0 && (
         <p role="alert" className="alert alert-warn">
@@ -36,10 +36,10 @@ export default async function Home() {
           {role === 'owner' ? <Link href="/import" className="font-semibold underline">Import more codes</Link> : 'Tell the owner.'}
         </p>
       )}
-      <div className="grid grid-cols-2 gap-3">
-        <section className="card flex flex-col"><span className="text-sm text-mute">{labels.today}</span><b className="text-[22px]">{formatPeso(d.pesos)}</b><span className="text-sm text-mute">{d.count} sales</span></section>
-        <section className="card flex flex-col"><span className="text-sm text-mute">{labels.month}</span><b className="text-[22px]">{formatPeso(m.pesos)}</b><span className="text-sm text-mute">{m.count} sales</span></section>
-      </div>
+      <section className="card grid grid-cols-2 gap-3">
+        <div className="flex flex-col"><span className="text-sm text-mute">{labels.today}</span><b className="text-[22px]">{formatPeso(d.pesos)}</b><span className="text-sm text-mute">{d.count} sales</span></div>
+        <div className="flex flex-col"><span className="text-sm text-mute">{labels.month}</span><b className="text-[22px]">{formatPeso(m.pesos)}</b><span className="text-sm text-mute">{m.count} sales</span></div>
+      </section>
       <h2 className="text-[17px] font-bold">Tap a plan to sell</h2>
       <div className="menu">
         {stock?.map((p) => {

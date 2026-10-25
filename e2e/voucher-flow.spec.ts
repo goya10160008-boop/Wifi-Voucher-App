@@ -138,7 +138,7 @@ test('create plan, import, sell, copy, void, totals', async ({ page, context }) 
 
   await page.goto('/sales');
   await expect(page.getByText(codes[0]).first()).toBeVisible();
-  await expect(page.getByText(/Total: ₱0\.00/)).toBeVisible(); // the only sale was voided, so excluded
+  await expect(page.getByText(/Total: ₱0\.00/)).toBeVisible(); // the only sale was voided, so excluded (the totals line is a fold-out summary)
 });
 
 test('sell 3 vouchers in one sale: group page, copy all, void one code', async ({ page, context }) => {
@@ -258,7 +258,8 @@ test('home menu grid and sales filter fit the screen without sideways scrolling'
     const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(over, `horizontal overflow on ${url}`).toBeLessThanOrEqual(0);
   }
-  // The From and To date fields sit side by side inside the viewport.
+  // The filters are folded; open them. The From and To date fields sit side by side inside the viewport.
+  await page.getByText('Filters:').click();
   const from = await page.getByLabel('From').boundingBox();
   const to = await page.getByLabel('To').boundingBox();
   expect(from && to && from.y === to.y && to.x + to.width <= page.viewportSize()!.width).toBe(true);

@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
   return (
-    <div className="mx-auto max-w-xl p-4 pb-32">
+    <div className="mx-auto max-w-xl page">
       {children}
       <Nav role={role} />
       <IdleGuard limit={idleMsFor(role)} />

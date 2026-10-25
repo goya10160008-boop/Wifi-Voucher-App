@@ -1,7 +1,7 @@
 import { requireRole } from '@/lib/auth';
-import { formatPeso } from '@/lib/money';
-import { createPlan, updatePlan, setPlanActive } from './actions';
+import { createPlan } from './actions';
 import { PlanForm } from './PlanForm';
+import { PlanRows } from './PlanRows';
 
 export default async function PlansPage() {
   const { supabase } = await requireRole('owner');
@@ -13,22 +13,7 @@ export default async function PlansPage() {
         <h2 className="mb-3 font-bold">Add plan</h2>
         <PlanForm action={createPlan} submitLabel="Add plan" />
       </section>
-      {plans?.map((p) => (
-        <details key={p.id} className={`card ${p.active ? '' : 'opacity-60'}`}>
-          <summary className="flex min-h-12 cursor-pointer items-center justify-between gap-2">
-            <span className="font-bold">{p.name}{p.active ? '' : ' (archived)'}</span>
-            <span>{formatPeso(p.price_centavos)} · {p.duration_minutes / 60}h</span>
-          </summary>
-          <div className="mt-3 flex flex-col gap-3">
-            <PlanForm action={updatePlan} plan={p} submitLabel="Save" />
-            <form action={setPlanActive}>
-              <input type="hidden" name="id" value={p.id} />
-              <input type="hidden" name="active" value={String(!p.active)} />
-              <button className="btn btn-ghost w-full">{p.active ? 'Archive plan' : 'Restore plan'}</button>
-            </form>
-          </div>
-        </details>
-      ))}
+      <PlanRows plans={plans ?? []} />
     </main>
   );
 }
