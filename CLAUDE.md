@@ -33,6 +33,7 @@ tests/unit/             e2e/                   samples/   docs/
 - Build: `npm run build`
 - Cloudflare preview: `npm run preview`
 - Deploy: `npm run deploy` (**ask the owner first, always**)
+- CI: `.github/workflows/ci.yml` (lint, test, build on push/PR). Deploy: `deploy.yml`, manual + `production` environment approval; needs GitHub secrets CLOUDFLARE_API_TOKEN/ACCOUNT_ID and vars NEXT_PUBLIC_SUPABASE_*
 - Local DB: `supabase start` (needs Docker), `supabase db reset`
 
 ## Conventions
