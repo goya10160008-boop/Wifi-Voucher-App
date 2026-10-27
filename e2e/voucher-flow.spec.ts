@@ -182,7 +182,7 @@ test('sell 3 vouchers in one sale: group page, copy all, void one code', async (
   await expect(page.getByText('Copied 3 codes')).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(codes.join('\n'));
   await expect(page.getByRole('article', { name: 'Receipt' })).toContainText('Change');
-  await page.getByRole('button', { name: 'Copy all 3', exact: true }).click();
+  await page.getByRole('button', { name: 'Copy all 3 codes' }).click();
   await expect(page.getByText('Copied 3 codes')).toBeVisible();
 
   // Void just one code (a code that did not work); the other two stay valid.
@@ -192,7 +192,7 @@ test('sell 3 vouchers in one sale: group page, copy all, void one code', async (
   await page.getByLabel('Reason for this code').selectOption('code_failed');
   await page.getByRole('button', { name: 'Void this code' }).click();
   await expect(page.getByText(/1 of 3 codes voided: Code did not work/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Copy all 2', exact: true })).toBeVisible(); // only live codes are copied
+  await expect(page.getByRole('button', { name: 'Copy all 2 codes' })).toBeVisible(); // only live codes are copied
 
   // Void the rest of the receipt in one go.
   await page.getByRole('button', { name: 'Void this receipt' }).click();

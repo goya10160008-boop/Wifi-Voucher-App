@@ -5,7 +5,7 @@ import {
 import { CopyCode } from './CopyCode';
 import { ReceiptActions } from './ReceiptActions';
 
-/** The paper receipt. `copyable` adds a Copy button beside each live code (the clean screenshot view has none). */
+/** The paper receipt. `copyable` makes each live code a tap-to-copy button (the clean screenshot view has plain text). */
 export function ReceiptPaper({ sales, tendered, refId, createdAt, guest, room, copyable = false }: {
   sales: ReceiptSale[]; tendered: number | null; refId: string; createdAt: string; guest: string | null; room: string | null; copyable?: boolean;
 }) {
@@ -32,7 +32,7 @@ export function ReceiptPaper({ sales, tendered, refId, createdAt, guest, room, c
               <span className="receipt-seq" aria-hidden="true">{c.seq}.</span>
               {c.voided
                 ? <span className="receipt-voided" role="text" aria-label={`Code ${c.seq} voided, do not use`}>VOIDED</span>
-                : <><span className="receipt-code">{c.code}</span>{copyable && <CopyCode code={c.code!} />}</>}
+                : copyable ? <CopyCode code={c.code!} /> : <span className="receipt-code">{c.code}</span>}
             </li>
           ))}
         </ol>

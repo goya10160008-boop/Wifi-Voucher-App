@@ -318,10 +318,18 @@ textarea.field { padding: 0.75rem 1rem; }
 .drow[open] > summary { border-bottom: 1px solid var(--color-line); }
 .drow-body { padding: 12px 14px; }
 
-/* Receipt screen: a Copy button beside each code, and the action bar that stays above the bottom menu. */
-.receipt-bar .btn { padding: 0 0.5rem; white-space: nowrap; }
-.receipt-copy { min-height: 48px; min-width: 72px; padding: 0 0.75rem; }
-.receipt-bar {
-  position: sticky; bottom: calc(var(--navb) + var(--navh) + 20px); z-index: 5; padding: 6px 8px 8px;
-  background: var(--color-canvas); border-radius: var(--radius-card);
-}
+/* Receipt screen: each live code is a tap-to-copy button, and the action bar takes the place of the bottom menu. */
+.codebtn { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 12px; background: none; cursor: pointer;
+  border: 1px dashed var(--color-mute); border-radius: var(--radius-field); color: var(--color-ink); }
+.codebtn:active { background: var(--color-soft); }
+.codebtn:focus-visible, .takeover button:focus-visible, .takeover a:focus-visible { outline: 3px solid var(--color-pri); outline-offset: 2px; }
+.codeok { font: 700 16px var(--font-sans); color: var(--color-ok-ink); white-space: nowrap; }
+.receipt-main { padding-bottom: 72px; }
+.takeover { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0; background: var(--color-card);
+  border-top: 1px solid var(--color-line); box-shadow: var(--shadow-float); padding-bottom: env(safe-area-inset-bottom); }
+.takeover > p { max-width: 36rem; margin: 0 auto; padding: 4px 8px 0; }
+.takeover > div { max-width: 36rem; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 6px 8px 8px; }
+.takeover button, .takeover a { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: 0; border-radius: var(--radius-field); background: none; color: var(--color-ink); font: 700 14px var(--font-sans); text-decoration: none; cursor: pointer; }
+.takeover button:active, .takeover a:active { background: var(--color-soft); }
+.takeover .go { background: var(--color-pri); color: var(--color-pri-ink); }

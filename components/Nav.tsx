@@ -29,7 +29,7 @@ export function Nav({ role }: { role: Role }) {
   const receipt = useSearchParams().get('receipt') === '1';
   const items = ITEMS.filter((i) => !i.owner || role === 'owner');
   const active = items.findIndex((i) => (i.href === '/' ? path === '/' : path.startsWith(i.href)));
-  if (receipt) return null; // screenshot mode: nothing but the receipt
+  if (receipt || path.startsWith('/sales/group/')) return null; // screenshot mode, and the receipt's own action bar takes the menu's place
   return (
     <nav aria-label="Main" className="nav" data-none={active < 0 ? '' : undefined}
       style={{ '--n': items.length, '--i': Math.max(active, 0) } as React.CSSProperties}>
